@@ -1,0 +1,15 @@
+# Secrets
+.env
+*.pem
+google-service-account*.json
+
+# Node
+node_modules/
+dist/
+coverage/
+*.local
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
