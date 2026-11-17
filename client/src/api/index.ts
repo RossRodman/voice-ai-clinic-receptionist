@@ -3,6 +3,64 @@ export interface Health {
   uptime: number;
 }
 
+export interface HoursLine {
+  days: string;
+  hours: string;
+}
+
+export interface Provider {
+  id: string;
+  name: string;
+  title: string;
+  role: string;
+  bio: string;
+}
+
+export interface Service {
+  id: string;
+  name: string;
+  description: string;
+  durationMinutes: number;
+  price: string;
+  providers: string[];
+}
+
+export interface Clinic {
+  name: string;
+  phone: string;
+  email: string;
+  address: string;
+  website: string;
+  timezone: string;
+  hours: HoursLine[];
+  providers: Provider[];
+  services: Service[];
+  insurance: { inNetwork: string[]; notAccepted: string[]; notes: string };
+  languages: string[];
+}
+
+export interface KnowledgeEntry {
+  id: string;
+  title: string;
+  content: string;
+  keywords: string[];
+  source: "clinic" | "faq";
+  serviceId?: string;
+}
+
+export type ToolResult =
+  | { found: true; answers: { topic: string; answer: string; serviceId?: string }[] }
+  | { found: false; instruction: string };
+
+export interface SearchResponse {
+  query: string;
+  found: boolean;
+  terms: string[];
+  coverage: number;
+  hits: (KnowledgeEntry & { score: number })[];
+  toolResult: ToolResult;
+}
+
 export class ApiError extends Error {
   readonly status: number;
 
@@ -50,4 +108,11 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   health: (signal?: AbortSignal) => request<Health>("/health", { signal }),
+  clinic: (signal?: AbortSignal) => request<Clinic>("/api/clinic", { signal }),
+  knowledgeBase: (signal?: AbortSignal) =>
+    request<{ entries: KnowledgeEntry[] }>("/api/knowledge-base", { signal }),
+  searchKnowledgeBase: (q: string, signal?: AbortSignal) =>
+    request<SearchResponse>(`/api/knowledge-base/search?${new URLSearchParams({ q })}`, {
+      signal,
+    }),
 };

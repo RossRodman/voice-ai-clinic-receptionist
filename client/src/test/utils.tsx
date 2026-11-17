@@ -15,13 +15,13 @@ export function renderRoute(path: string) {
 type Handler = (body: unknown) => unknown;
 
 export function mockApi(handlers: Record<string, Handler | unknown>) {
-  const calls: { key: string; body: unknown }[] = [];
+  const calls: { key: string; url: string; body: unknown }[] = [];
 
   vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
     const url = new URL(String(input), "http://localhost");
     const key = `${init?.method ?? "GET"} ${url.pathname}`;
     const body: unknown = typeof init?.body === "string" ? JSON.parse(init.body) : init?.body;
-    calls.push({ key, body });
+    calls.push({ key, url: url.pathname + url.search, body });
 
     if (!(key in handlers)) {
       return Response.json({ message: `unmocked ${key}` }, { status: 404 });

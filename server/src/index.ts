@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { buildApp } from "./app.ts";
 import { ConfigError, loadConfig } from "./config.ts";
+import { loadClinicData } from "./knowledgeBase/load.ts";
 
 const envFile = fileURLToPath(new URL("../../.env", import.meta.url));
 if (existsSync(envFile)) process.loadEnvFile(envFile);
@@ -16,7 +17,7 @@ try {
   process.exit(1);
 }
 
-const app = await buildApp(config);
+const app = await buildApp(config, { clinic: await loadClinicData() });
 
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.once(signal, () => {

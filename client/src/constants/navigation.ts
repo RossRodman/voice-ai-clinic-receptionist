@@ -1,4 +1,5 @@
 import DashboardOutlined from "@mui/icons-material/DashboardOutlined";
+import MenuBookOutlined from "@mui/icons-material/MenuBookOutlined";
 import type { SvgIconComponent } from "@mui/icons-material";
 
 export interface NavItem {
@@ -7,4 +8,7 @@ export interface NavItem {
   icon: SvgIconComponent;
 }
 
-export const NAV_ITEMS: NavItem[] = [{ to: "/", label: "Dashboard", icon: DashboardOutlined }];
+export const NAV_ITEMS: NavItem[] = [
+  { to: "/", label: "Dashboard", icon: DashboardOutlined },
+  { to: "/knowledge-base", label: "Knowledge base", icon: MenuBookOutlined },
+];

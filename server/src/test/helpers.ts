@@ -1,4 +1,5 @@
 import type { Config } from "../config.ts";
+import { loadClinicData, type ClinicData } from "../knowledgeBase/load.ts";
 
 export const TEST_SECRET = "test-secret-0123456789abcdef";
 
@@ -27,4 +28,11 @@ export function toolCallsMessage(
       })),
     },
   };
+}
+
+let clinicData: Promise<ClinicData> | undefined;
+
+export function testClinic(): Promise<ClinicData> {
+  clinicData ??= loadClinicData();
+  return clinicData;
 }
