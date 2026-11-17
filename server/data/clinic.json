@@ -1,0 +1,170 @@
+{
+  "name": "Brightside Dental",
+  "phone": "+1 (555) 014-2300",
+  "email": "hello@brightside-dental.example",
+  "address": "214 Maple Avenue, Suite 3, Springfield, IL 62704",
+  "website": "brightside-dental.example",
+  "timezone": "America/Chicago",
+  "hours": {
+    "mon": [["08:00", "18:00"]],
+    "tue": [["08:00", "18:00"]],
+    "wed": [["08:00", "18:00"]],
+    "thu": [["08:00", "18:00"]],
+    "fri": [["08:00", "15:00"]],
+    "sat": [["09:00", "13:00"]],
+    "sun": []
+  },
+  "providers": [
+    {
+      "id": "dr-carter",
+      "name": "Dr. Emily Carter",
+      "title": "DDS",
+      "role": "General and cosmetic dentist",
+      "bio": "Fillings, crowns, whitening and clear aligners. Practicing for 14 years."
+    },
+    {
+      "id": "dr-okafor",
+      "name": "Dr. James Okafor",
+      "title": "DMD",
+      "role": "General dentist",
+      "bio": "Root canals, extractions and emergency care. Speaks English and Spanish."
+    },
+    {
+      "id": "dr-ramirez",
+      "name": "Dr. Sofia Ramirez",
+      "title": "DDS",
+      "role": "Pediatric dentist",
+      "bio": "Children from their first tooth to age 14. Calm, unhurried visits for nervous kids."
+    },
+    {
+      "id": "hannah-lee",
+      "name": "Hannah Lee",
+      "title": "RDH",
+      "role": "Dental hygienist",
+      "bio": "Cleanings, deep cleanings and gum care for adults."
+    }
+  ],
+  "services": [
+    {
+      "id": "new-patient-exam",
+      "name": "New patient exam",
+      "durationMinutes": 60,
+      "price": { "amount": 150 },
+      "providers": ["dr-carter", "dr-okafor"],
+      "description": "A full exam with X-rays and an oral cancer screening, and a treatment plan if anything is needed. The first visit for every adult patient.",
+      "keywords": ["first visit", "new", "consultation", "x-rays"]
+    },
+    {
+      "id": "checkup-cleaning",
+      "name": "Checkup and cleaning",
+      "durationMinutes": 60,
+      "price": { "amount": 120 },
+      "providers": ["hannah-lee"],
+      "description": "A routine cleaning with the hygienist, polishing and a short exam by a dentist. Recommended every six months; most insurance plans cover two a year.",
+      "keywords": ["cleaning", "checkup", "routine", "hygiene", "polish", "six months"]
+    },
+    {
+      "id": "deep-cleaning",
+      "name": "Deep cleaning (scaling and root planing)",
+      "durationMinutes": 90,
+      "price": { "amount": 220, "from": true, "note": "per quarter of the mouth" },
+      "providers": ["hannah-lee"],
+      "description": "Cleaning below the gum line for gum disease, usually done in two visits with local anesthetic. A dentist decides at an exam whether it is needed.",
+      "keywords": ["gum disease", "periodontal", "bleeding gums", "scaling"]
+    },
+    {
+      "id": "filling",
+      "name": "Tooth-colored filling",
+      "durationMinutes": 60,
+      "price": { "amount": 160, "from": true, "note": "depends on the size" },
+      "providers": ["dr-carter", "dr-okafor"],
+      "description": "Repairs a cavity with a white composite filling that matches the tooth. Done with local anesthetic in one visit.",
+      "keywords": ["cavity", "hole", "composite", "decay"]
+    },
+    {
+      "id": "root-canal",
+      "name": "Root canal",
+      "durationMinutes": 90,
+      "price": { "amount": 950, "from": true, "note": "front teeth; molars from $1,200" },
+      "providers": ["dr-okafor"],
+      "description": "Treats an infected or badly inflamed tooth nerve and saves the tooth. Usually one visit, sometimes two. Most teeth need a crown afterwards.",
+      "keywords": ["nerve", "infection", "endodontic", "abscess"]
+    },
+    {
+      "id": "crown",
+      "name": "Crown",
+      "durationMinutes": 90,
+      "price": { "amount": 1150, "from": true },
+      "providers": ["dr-carter", "dr-okafor"],
+      "description": "A porcelain cap for a cracked, weak or root-canal-treated tooth. Two visits about two weeks apart: preparation with a temporary crown, then the permanent one.",
+      "keywords": ["cap", "cracked", "broken", "porcelain"]
+    },
+    {
+      "id": "extraction",
+      "name": "Tooth extraction",
+      "durationMinutes": 45,
+      "price": { "amount": 190, "from": true, "note": "simple extraction" },
+      "providers": ["dr-okafor"],
+      "description": "Removes a tooth that can't be saved, with local anesthetic. Impacted wisdom teeth are referred to an oral surgeon.",
+      "keywords": ["pull", "remove", "wisdom tooth", "take out"]
+    },
+    {
+      "id": "whitening",
+      "name": "In-office whitening",
+      "durationMinutes": 90,
+      "price": { "amount": 450 },
+      "providers": ["dr-carter"],
+      "description": "Professional whitening in one visit, usually several shades lighter. Take-home trays are $250. Needs a checkup in the last six months first.",
+      "keywords": ["white", "bleaching", "stains", "brighter", "cosmetic"]
+    },
+    {
+      "id": "aligner-consultation",
+      "name": "Clear aligner consultation",
+      "durationMinutes": 30,
+      "price": { "amount": 0 },
+      "providers": ["dr-carter"],
+      "description": "A free consultation about straightening teeth with clear aligners: a 3D scan, the plan and the cost. Treatment itself is from $3,800, with monthly payments.",
+      "keywords": ["braces", "invisalign", "straighten", "crooked", "orthodontic"]
+    },
+    {
+      "id": "kids-checkup",
+      "name": "Children's checkup and cleaning",
+      "durationMinutes": 45,
+      "price": { "amount": 85 },
+      "providers": ["dr-ramirez"],
+      "description": "Cleaning, fluoride and a gentle exam for children up to 14, with Dr. Ramirez. A parent or guardian stays with the child.",
+      "keywords": ["child", "kid", "son", "daughter", "pediatric", "baby", "fluoride", "toddler"]
+    },
+    {
+      "id": "emergency",
+      "name": "Emergency visit",
+      "durationMinutes": 30,
+      "price": { "amount": 95, "note": "for the exam and an X-ray; treatment is extra" },
+      "providers": ["dr-okafor", "dr-carter"],
+      "description": "Same-day visit for toothache, a broken or knocked-out tooth, a lost filling or crown, or swelling. We keep time free every weekday for emergencies.",
+      "keywords": [
+        "pain",
+        "hurt",
+        "toothache",
+        "urgent",
+        "swelling",
+        "knocked out",
+        "same day",
+        "ache"
+      ]
+    }
+  ],
+  "insurance": {
+    "inNetwork": [
+      "Delta Dental PPO",
+      "MetLife",
+      "Cigna DPPO",
+      "Aetna PPO",
+      "Guardian",
+      "United Concordia"
+    ],
+    "notAccepted": ["Medicaid", "dental HMO plans"],
+    "notes": "With other PPO plans we are out of network, but we still file the claim for the patient. We check coverage before treatment if the patient sends their insurance details ahead of the visit."
+  },
+  "languages": ["English", "Spanish"]
+}

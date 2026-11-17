@@ -1,10 +1,14 @@
 import Fastify, { type FastifyServerOptions } from "fastify";
 import type { Config } from "./config.ts";
+import type { ClinicData } from "./knowledgeBase/load.ts";
+import { apiRoutes } from "./routes/api.ts";
 import { healthRoutes } from "./routes/health.ts";
+import { createTools } from "./tools/index.ts";
 import { vapiRoutes } from "./vapi/routes.ts";
 import type { ToolRegistry } from "./vapi/tools.ts";
 
 export interface AppDeps {
+  clinic: ClinicData;
   tools?: ToolRegistry;
 }
 
@@ -24,7 +28,7 @@ function loggerOptions(config: Config): FastifyServerOptions["logger"] {
   return { level: config.logLevel };
 }
 
-export async function buildApp(config: Config, deps: AppDeps = {}) {
+export async function buildApp(config: Config, deps: AppDeps) {
   const app = Fastify({
     logger: loggerOptions(config),
     bodyLimit: 5 * 1024 * 1024,
@@ -33,10 +37,12 @@ export async function buildApp(config: Config, deps: AppDeps = {}) {
 
   await app.register(healthRoutes);
 
+  await app.register(apiRoutes, { prefix: "/api", ...deps.clinic });
+
   await app.register(vapiRoutes, {
     prefix: "/vapi",
     secret: config.vapi.serverSecret,
-    tools: deps.tools ?? {},
+    tools: deps.tools ?? createTools(deps.clinic),
   });
 
   return app;
