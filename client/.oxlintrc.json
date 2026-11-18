@@ -2,13 +2,21 @@
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["react", "typescript", "oxc"],
   "rules": {
+    "curly": ["error", "all"],
     "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
+    "react/only-export-components": [
+      "warn",
+      {
+        "allowConstantExport": true
+      }
+    ]
   },
   "overrides": [
     {
       "files": ["src/test/**", "**/*.test.ts", "**/*.test.tsx"],
-      "rules": { "react/only-export-components": "off" }
+      "rules": {
+        "react/only-export-components": "off"
+      }
     }
   ]
 }

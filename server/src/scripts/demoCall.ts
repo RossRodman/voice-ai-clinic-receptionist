@@ -3,7 +3,10 @@ import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const envFile = fileURLToPath(new URL("../../../.env", import.meta.url));
-if (existsSync(envFile)) process.loadEnvFile(envFile);
+
+if (existsSync(envFile)) {
+  process.loadEnvFile(envFile);
+}
 
 const server = (process.env.SERVER_URL ?? `http://localhost:${process.env.PORT ?? 3000}`).replace(
   /\/+$/,
@@ -44,7 +47,11 @@ class DemoCall {
       body: JSON.stringify({ message: { ...message, call: this.call } }),
     });
     const body = (await res.json().catch(() => ({}))) as Json;
-    if (!res.ok) throw new Error(`${message.type}: ${res.status} ${JSON.stringify(body)}`);
+
+    if (!res.ok) {
+      throw new Error(`${message.type}: ${res.status} ${JSON.stringify(body)}`);
+    }
+
     return body;
   }
 
@@ -66,8 +73,13 @@ class DemoCall {
       toolCallList: [{ id, type: "function", function: { name, arguments: args } }],
     });
     const [result] = body.results as { result?: string; error?: string }[];
-    if (result?.error) throw new Error(`${name}: ${result.error}`);
+
+    if (result?.error) {
+      throw new Error(`${name}: ${result.error}`);
+    }
+
     this.history.push({ role: "tool_call_result", toolCallId: id, name, result: result?.result });
+
     return JSON.parse(result?.result ?? "null") as T;
   }
 
@@ -92,6 +104,7 @@ class DemoCall {
       analysis: { summary },
       artifact: { messages: this.history },
     });
+
     return this;
   }
 }
@@ -123,9 +136,11 @@ async function booking(clinic: string) {
     serviceId: "checkup-cleaning",
   });
   const [a, b] = offer.slots;
+
   if (!a) {
     call.say("bot", "I'm sorry, there's nothing free in the next weeks. Can I transfer you?");
     call.say("user", "No thanks, I'll call back.");
+
     return call.end("customer-ended-call", `${name} asked for a cleaning; nothing was free.`);
   }
 
@@ -153,6 +168,7 @@ async function booking(clinic: string) {
   if (!booked.booked) {
     call.say("bot", `I'm sorry, ${booked.reason ?? "that time was just taken"}.`);
     call.say("user", "Never mind, I'll call back later.");
+
     return call.end("customer-ended-call", `${name} tried to book a cleaning; the time was taken.`);
   }
 
@@ -162,6 +178,7 @@ async function booking(clinic: string) {
   );
   call.say("user", "No, that's it. Thank you!");
   call.say("bot", "You're welcome. See you soon!");
+
   return call.end(
     "customer-ended-call",
     `${name}, a new patient, booked a checkup and cleaning for ${booked.when} with ${booked.provider}.`,
@@ -174,6 +191,7 @@ async function questions(clinic: string) {
   call.say("bot", `Thanks for calling ${clinic}. How can I help you today?`);
 
   const asked: string[] = [];
+
   for (const [question, query] of [
     ["Hi, do you take Delta Dental?", "do you take Delta Dental insurance"],
     ["And is there parking near you?", "is there parking"],
@@ -190,6 +208,7 @@ async function questions(clinic: string) {
 
   call.say("user", "Perfect, that's all I needed. Thanks!");
   call.say("bot", "You're welcome. Have a great day!");
+
   return call.end(
     "customer-ended-call",
     `The caller asked about ${asked.join(" and ")}; both were answered from the knowledge base.`,
@@ -208,6 +227,7 @@ async function transfer(clinic: string) {
   call.recordToolCall(`${call.id}-transfer`, "transferCall", {
     destination: { type: "number", number: "+15550142300" },
   });
+
   return call.end(
     "assistant-forwarded-call",
     "The caller has a toothache with facial swelling; the assistant transferred them to the front desk.",
@@ -220,8 +240,10 @@ async function main() {
   if (!secret) {
     fail("VAPI_SERVER_SECRET is not set: copy .env.example to .env and fill it in.");
   }
+
   const wanted = process.argv.slice(2);
   const unknown = wanted.filter((w) => !(w in SCENARIOS));
+
   if (unknown.length) {
     fail(`Unknown scenario ${unknown.join(", ")}. Use: ${Object.keys(SCENARIOS).join(", ")}.`);
   }
@@ -237,6 +259,7 @@ async function main() {
     const call = await SCENARIOS[scenario](name);
     out(`✓ ${scenario.padEnd(9)} ${call.id}  ${server}/api/calls/${call.id}`);
   }
+
   out("\nOpen Front Desk → Calls to see them.");
 }
 

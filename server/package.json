@@ -9,6 +9,8 @@
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/index.js",
     "demo:call": "tsx src/scripts/demoCall.ts",
+    "assistant:sync": "tsx src/scripts/syncAssistant.ts",
+    "assistant:print": "tsx src/scripts/syncAssistant.ts --print",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint --deny-warnings",
     "format": "prettier --write .",

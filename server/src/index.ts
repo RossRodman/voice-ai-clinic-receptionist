@@ -7,14 +7,20 @@ import { ConfigError, loadConfig } from "./config.ts";
 import { loadClinicData } from "./knowledgeBase/load.ts";
 
 const envFile = fileURLToPath(new URL("../../.env", import.meta.url));
-if (existsSync(envFile)) process.loadEnvFile(envFile);
+
+if (existsSync(envFile)) {
+  process.loadEnvFile(envFile);
+}
 
 let config;
 
 try {
   config = loadConfig();
 } catch (err) {
-  if (!(err instanceof ConfigError)) throw err;
+  if (!(err instanceof ConfigError)) {
+    throw err;
+  }
+
   process.stderr.write(`${err.message}\n\nCopy .env.example to .env and fill it in.\n`);
   process.exit(1);
 }

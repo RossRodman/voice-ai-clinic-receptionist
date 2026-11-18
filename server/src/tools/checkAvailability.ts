@@ -96,9 +96,11 @@ export function describeIssues(error: z.ZodError): string {
 export function checkAvailability(booking: BookingService): ToolHandler {
   return async (args, { log }) => {
     const parsed = argsSchema.safeParse(args);
+
     if (!parsed.success) {
       throw new ToolError(`Invalid arguments. ${describeIssues(parsed.error)}`);
     }
+
     const { serviceId, date, timeOfDay, providerId } = parsed.data;
 
     try {
@@ -112,9 +114,13 @@ export function checkAvailability(booking: BookingService): ToolHandler {
         { ...parsed.data, slots: availability.slots.map((s) => s.start) },
         "availability checked",
       );
+
       return toAvailabilityResult(availability);
     } catch (err) {
-      if (err instanceof BookingError) throw new ToolError(err.message);
+      if (err instanceof BookingError) {
+        throw new ToolError(err.message);
+      }
+
       throw err;
     }
   };

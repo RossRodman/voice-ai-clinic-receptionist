@@ -1,32 +1,13 @@
-import CallSplitRounded from "@mui/icons-material/CallSplitRounded";
 import CodeRounded from "@mui/icons-material/CodeRounded";
-import EventAvailableOutlined from "@mui/icons-material/EventAvailableOutlined";
-import EventNoteOutlined from "@mui/icons-material/EventNoteOutlined";
-import FunctionsRounded from "@mui/icons-material/FunctionsRounded";
-import MenuBookOutlined from "@mui/icons-material/MenuBookOutlined";
-import {
-  Box,
-  Button,
-  Card,
-  Chip,
-  Collapse,
-  Stack,
-  Typography,
-} from "@mui/material";
-import type { SvgIconComponent } from "@mui/icons-material";
+import { Box, Button, Card, Chip, Collapse, Stack, Typography } from "@mui/material";
 import { useState } from "react";
 
+import { ToolIcon } from "@/components";
+import { toolLabel } from "@/constants";
 import { Styled } from "@/styled";
 import type { CallDetail, ToolCallRecord, TranscriptTurn } from "@/types";
 
-import { clock, conversation, toolLabel } from "../../format";
-
-const TOOL_ICONS: Record<string, SvgIconComponent> = {
-  search_knowledge_base: MenuBookOutlined,
-  check_availability: EventNoteOutlined,
-  book_appointment: EventAvailableOutlined,
-  transferCall: CallSplitRounded,
-};
+import { clock, conversation } from "../../format";
 
 const payloadSx = [
   Styled.Mono,
@@ -44,6 +25,7 @@ const payloadSx = [
 
 function Turn({ turn }: { turn: TranscriptTurn }) {
   const isCaller = turn.role === "caller";
+
   return (
     <Box
       component="li"
@@ -88,7 +70,6 @@ function Turn({ turn }: { turn: TranscriptTurn }) {
 
 function ToolCall({ toolCall, at }: { toolCall: ToolCallRecord; at: number }) {
   const [open, setOpen] = useState(false);
-  const Icon = TOOL_ICONS[toolCall.name] ?? FunctionsRounded;
   const ranHere = toolCall.durationMs !== null;
 
   return (
@@ -108,23 +89,19 @@ function ToolCall({ toolCall, at }: { toolCall: ToolCallRecord; at: number }) {
           spacing={1.5}
           sx={{ alignItems: "center", flexWrap: "wrap", rowGap: 0.5 }}
         >
-          <Icon
+          <ToolIcon
+            name={toolCall.name}
             fontSize="small"
             sx={{ color: toolCall.error ? "error.main" : "primary.main" }}
           />
           <Typography variant="body2" sx={{ fontWeight: 600 }}>
             {toolLabel(toolCall.name)}
           </Typography>
-          <Typography
-            variant="caption"
-            sx={[Styled.Mono, { color: "text.secondary" }]}
-          >
+          <Typography variant="caption" sx={[Styled.Mono, { color: "text.secondary" }]}>
             {toolCall.name} · {clock(at)}
             {ranHere && ` · ${toolCall.durationMs} ms`}
           </Typography>
-          {toolCall.error && (
-            <Chip size="small" color="error" variant="outlined" label="Error" />
-          )}
+          {toolCall.error && <Chip size="small" color="error" variant="outlined" label="Error" />}
           <Box sx={{ flex: 1 }} />
           <Button
             size="small"
@@ -147,9 +124,7 @@ function ToolCall({ toolCall, at }: { toolCall: ToolCallRecord; at: number }) {
             </Box>
             <Box>
               <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                {toolCall.error
-                  ? "Error the assistant got"
-                  : "What the assistant got back"}
+                {toolCall.error ? "Error the assistant got" : "What the assistant got back"}
               </Typography>
               <Box component="pre" sx={payloadSx}>
                 {toolCall.error ??
@@ -189,15 +164,11 @@ export function Conversation({ call }: { call: CallDetail }) {
         sx={{ listStyle: "none", m: 0, p: 0 }}
       >
         {items.map((item, i) =>
-          item.kind === "turn"
-            ? <Turn key={`turn-${i}`} turn={item.turn} />
-            : (
-              <ToolCall
-                key={item.toolCall.id}
-                toolCall={item.toolCall}
-                at={item.at}
-              />
-            )
+          item.kind === "turn" ? (
+            <Turn key={`turn-${i}`} turn={item.turn} />
+          ) : (
+            <ToolCall key={item.toolCall.id} toolCall={item.toolCall} at={item.at} />
+          ),
         )}
       </Stack>
     </Card>

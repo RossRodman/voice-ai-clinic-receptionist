@@ -1,12 +1,5 @@
 import ChevronRightRounded from "@mui/icons-material/ChevronRightRounded";
-import {
-  Box,
-  Card,
-  List,
-  ListItemButton,
-  Stack,
-  Typography,
-} from "@mui/material";
+import { Box, Card, List, ListItemButton, Stack, Typography } from "@mui/material";
 import { Link } from "react-router";
 
 import { Styled } from "@/styled";
@@ -26,8 +19,7 @@ export function CallList({ calls, timeZone }: CallListProps) {
       <Card sx={{ p: 3 }}>
         <Typography sx={{ fontWeight: 600 }}>No calls yet.</Typography>
         <Typography sx={{ color: "text.secondary", mt: 0.5 }}>
-          Calls show up here as soon as the assistant picks up. To try it
-          without a phone, run{" "}
+          Calls show up here as soon as the assistant picks up. To try it without a phone, run{" "}
           <Box component="code" sx={Styled.Mono}>
             npm run demo:call
           </Box>{" "}
@@ -64,17 +56,12 @@ export function CallList({ calls, timeZone }: CallListProps) {
                 spacing={1.5}
                 sx={{ alignItems: "center", flexWrap: "wrap", rowGap: 0.5 }}
               >
-                <Typography
-                  sx={[Styled.Mono, { fontWeight: 600, fontSize: 15 }]}
-                >
+                <Typography sx={[Styled.Mono, { fontWeight: 600, fontSize: 15 }]}>
                   {caller(call.customerNumber, call.type)}
                 </Typography>
                 <OutcomeChip status={call.status} outcome={call.outcome} />
               </Stack>
-              <Typography
-                variant="body2"
-                sx={{ color: "text.secondary", mt: 0.5 }}
-              >
+              <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
                 {callTime(call.startedAt, timeZone)}
                 {call.durationSeconds !== null && (
                   <>
@@ -100,9 +87,7 @@ export function CallList({ calls, timeZone }: CallListProps) {
                 </Typography>
               )}
             </Box>
-            <ChevronRightRounded
-              sx={{ color: "text.disabled", alignSelf: "center" }}
-            />
+            <ChevronRightRounded sx={{ color: "text.disabled", alignSelf: "center" }} />
           </ListItemButton>
         ))}
       </List>

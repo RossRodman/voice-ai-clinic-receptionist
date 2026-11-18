@@ -27,6 +27,7 @@ export function StatusPill({ state }: StatusPillProps) {
           sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: variant.color }}
         />
       }
+
       sx={{ color: "text.secondary", "& .MuiChip-icon": { ml: 1.25, mr: -0.25 } }}
     />
   );

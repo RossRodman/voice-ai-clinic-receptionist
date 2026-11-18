@@ -40,10 +40,12 @@ export class KnowledgeBase {
 
   constructor(entries: KnowledgeEntry[]) {
     const ids = new Set<string>();
+
     for (const e of entries) {
       if (ids.has(e.id)) {
         throw new Error(`Duplicate knowledge base entry "${e.id}"`);
       }
+
       ids.add(e.id);
     }
 
@@ -59,10 +61,15 @@ export class KnowledgeBase {
       ];
 
       const termFreq = new Map<string, number>();
-      for (const t of terms) termFreq.set(t, (termFreq.get(t) ?? 0) + 1);
+
+      for (const t of terms) {
+        termFreq.set(t, (termFreq.get(t) ?? 0) + 1);
+      }
+
       for (const t of termFreq.keys()) {
         this.docFreq.set(t, (this.docFreq.get(t) ?? 0) + 1);
       }
+
       return { entry, termFreq, length: terms.length };
     });
 
@@ -76,6 +83,7 @@ export class KnowledgeBase {
   private idf(term: string): number {
     const n = this.docFreq.get(term) ?? 0;
     const total = this.index.length;
+
     return Math.log(1 + (total - n + 0.5) / (n + 0.5));
   }
 
@@ -84,12 +92,18 @@ export class KnowledgeBase {
 
     const scored: SearchHit[] = this.index.map((doc) => {
       let score = 0;
+
       for (const t of terms) {
         const tf = doc.termFreq.get(t);
-        if (!tf) continue;
+
+        if (!tf) {
+          continue;
+        }
+
         const norm = tf + K1 * (1 - B + (B * doc.length) / this.avgLength);
         score += this.idf(t) * ((tf * (K1 + 1)) / norm);
       }
+
       return { entry: doc.entry, score: Math.round(score * 100) / 100 };
     });
 
@@ -108,6 +122,7 @@ export class KnowledgeBase {
 
     const cutoff = best * RELATIVE_CUTOFF;
     const hits = scored.filter((h) => h.score >= cutoff).slice(0, limit);
+
     return { found: true, hits, terms, coverage };
   }
 }

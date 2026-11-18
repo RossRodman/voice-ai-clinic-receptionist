@@ -6,7 +6,9 @@ import { ServiceAccountAuth } from "./googleAuth.ts";
 import type { CalendarClient } from "./types.ts";
 
 export function createCalendar(config: Config, clinic: Clinic): CalendarClient {
-  if (!config.googleCalendar) return demoCalendar(clinic, new Date());
+  if (!config.googleCalendar) {
+    return demoCalendar(clinic, new Date());
+  }
 
   const { calendarId, serviceAccount } = config.googleCalendar;
 

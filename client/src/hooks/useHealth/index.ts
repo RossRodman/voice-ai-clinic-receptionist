@@ -13,8 +13,13 @@ export function useHealth(): HealthState {
     retry: false,
   });
 
-  if (query.data) return { kind: "online" };
-  if (query.isError) return { kind: "offline" };
+  if (query.data) {
+    return { kind: "online" };
+  }
+
+  if (query.isError) {
+    return { kind: "offline" };
+  }
 
   return { kind: "loading" };
 }

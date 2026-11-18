@@ -49,6 +49,7 @@ export const clinicSchema = z
     timezone: z.string().refine((tz) => {
       try {
         new Intl.DateTimeFormat("en-US", { timeZone: tz });
+
         return true;
       } catch {
         return false;
@@ -81,6 +82,7 @@ export const clinicSchema = z
           message: `duplicate "${s.id}"`,
         });
       }
+
       serviceIds.add(s.id);
       s.providers.forEach((id, j) => {
         if (!providerIds.has(id)) {

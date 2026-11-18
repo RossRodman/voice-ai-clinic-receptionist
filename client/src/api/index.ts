@@ -204,6 +204,65 @@ export interface CallDetail extends CallSummary {
   bookings: BookingRecord[];
 }
 
+export interface AssistantSetup {
+  webhookUrl: string | null;
+  transferNumber: string | null;
+  apiKey: boolean;
+  assistantId: string | null;
+  phoneNumberId: string | null;
+  model: string;
+}
+
+export interface FunctionParameter {
+  type: string;
+  description?: string;
+  enum?: string[];
+}
+
+export interface FunctionTool {
+  type: "function";
+  function: {
+    name: string;
+    description: string;
+    parameters: { properties: Record<string, FunctionParameter>; required?: string[] };
+  };
+  messages?: { type: string; content: string }[];
+}
+
+export interface TransferTool {
+  type: "transferCall";
+  destinations: { type: string; number: string; message: string; description: string }[];
+}
+
+export interface EndCallTool {
+  type: "endCall";
+}
+
+export type AssistantTool = FunctionTool | TransferTool | EndCallTool;
+
+export interface VapiAssistant {
+  name: string;
+  firstMessage: string;
+  endCallMessage: string;
+  model: {
+    provider: string;
+    model: string;
+    temperature: number;
+    messages: { role: string; content: string }[];
+    tools: AssistantTool[];
+  };
+  voice: { provider: string; voiceId: string };
+  transcriber: { provider: string; model: string; language: string; keyterm?: string[] };
+  maxDurationSeconds: number;
+  silenceTimeoutSeconds: number;
+  server: { url: string };
+}
+
+export interface AssistantOverview {
+  assistant: VapiAssistant;
+  setup: AssistantSetup;
+}
+
 function queryString(params: object): string {
   const entries = Object.entries(params)
     .filter(([, value]) => value !== undefined && value !== "")
@@ -222,12 +281,17 @@ export class ApiError extends Error {
 }
 
 export function describeError(body: unknown): string | null {
-  if (!body || typeof body !== "object") return null;
+  if (!body || typeof body !== "object") {
+    return null;
+  }
 
   for (const key of ["error", "message"] as const) {
     if (key in body) {
       const value: unknown = body[key as keyof typeof body];
-      if (typeof value === "string") return value;
+
+      if (typeof value === "string") {
+        return value;
+      }
     }
   }
 
@@ -259,6 +323,7 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 export const api = {
   health: (signal?: AbortSignal) => request<Health>("/health", { signal }),
   clinic: (signal?: AbortSignal) => request<Clinic>("/api/clinic", { signal }),
+  assistant: (signal?: AbortSignal) => request<AssistantOverview>("/api/assistant", { signal }),
   knowledgeBase: (signal?: AbortSignal) =>
     request<{ entries: KnowledgeEntry[] }>("/api/knowledge-base", { signal }),
   searchKnowledgeBase: (q: string, signal?: AbortSignal) =>

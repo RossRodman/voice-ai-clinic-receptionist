@@ -6,12 +6,15 @@ export class InMemoryCalendar implements CalendarClient {
   private nextId = 1;
 
   constructor(events: Omit<CalendarEvent, "id">[] = []) {
-    for (const event of events) this.add(event);
+    for (const event of events) {
+      this.add(event);
+    }
   }
 
   add(event: Omit<CalendarEvent, "id">): CalendarEvent {
     const created = { ...event, id: `evt_${this.nextId++}` };
     this.events.push(created);
+
     return created;
   }
 

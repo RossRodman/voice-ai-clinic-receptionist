@@ -50,7 +50,9 @@ describe("App", () => {
 
     const links = screen.getAllByRole("link", { name: "Dashboard" });
     expect(links.length).toBeGreaterThan(0);
-    for (const link of links) expect(link).toHaveClass("active");
+    for (const link of links) {
+      expect(link).toHaveClass("active");
+    }
   });
 
   it("has a not-found page", () => {

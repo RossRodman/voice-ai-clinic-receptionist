@@ -19,9 +19,8 @@ export function CallsPage() {
         </Typography>
         <Typography variant="h1">Every call, and what came of it.</Typography>
         <Typography sx={Styled.PageLead}>
-          Who called, what they asked, what the assistant looked up and booked,
-          and how the call ended. Each call is saved as it happens and completed
-          by Vapi's end-of-call report.
+          Who called, what they asked, what the assistant looked up and booked, and how the call
+          ended. Each call is saved as it happens and completed by Vapi's end-of-call report.
         </Typography>
         {calls.data && (
           <Box>
@@ -38,12 +37,7 @@ export function CallsPage() {
         />
         <Box sx={{ mt: 3 }}>
           <QueryState query={calls} rows={4}>
-            {(data) => (
-              <CallList
-                calls={data.calls}
-                {...(timeZone ? { timeZone } : {})}
-              />
-            )}
+            {(data) => <CallList calls={data.calls} {...(timeZone ? { timeZone } : {})} />}
           </QueryState>
         </Box>
       </Box>

@@ -7,7 +7,9 @@ export function ThemeToggle() {
   const { mode, systemMode, setMode } = useColorScheme();
   const current = mode === "system" ? systemMode : mode;
 
-  if (!current) return null;
+  if (!current) {
+    return null;
+  }
 
   const next = current === "dark" ? "light" : "dark";
 

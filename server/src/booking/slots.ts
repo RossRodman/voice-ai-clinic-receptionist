@@ -37,7 +37,10 @@ export function bookingWindow(clinic: Clinic, now: Date): Window {
 
 export function candidateStarts(clinic: Clinic, service: Service, date: string, now: Date) {
   const window = bookingWindow(clinic, now);
-  if (date < window.today || date > window.lastDate) return [];
+
+  if (date < window.today || date > window.lastDate) {
+    return [];
+  }
 
   const { slotMinutes } = clinic.booking;
   const starts: { start: Date; end: Date; time: string }[] = [];
@@ -49,7 +52,9 @@ export function candidateStarts(clinic: Clinic, service: Service, date: string, 
       const time = fromMinutes(m);
       const start = fromLocal(date, time, clinic.timezone);
 
-      if (start < window.earliest) continue;
+      if (start < window.earliest) {
+        continue;
+      }
 
       const end = new Date(start.getTime() + service.durationMinutes * 60_000);
       starts.push({ start, end, time });
@@ -91,6 +96,7 @@ export function freeSlots(
 
   return candidateStarts(clinic, service, date, now).flatMap(({ start, end, time }) => {
     const providerIds = providers.filter((p) => isProviderFree(events, p, start, end));
+
     return providerIds.length > 0 ? [{ start, end, date, time, providerIds }] : [];
   });
 }
@@ -98,22 +104,34 @@ export function freeSlots(
 export type TimeOfDay = "morning" | "afternoon" | "any";
 
 export function matchesTimeOfDay(slot: Pick<Slot, "time">, timeOfDay: TimeOfDay): boolean {
-  if (timeOfDay === "any") return true;
+  if (timeOfDay === "any") {
+    return true;
+  }
+
   const isMorning = toMinutes(slot.time) < 12 * 60;
+
   return timeOfDay === "morning" ? isMorning : !isMorning;
 }
 
 export function pickSlots(slots: readonly Slot[], perDay: number, spreadMinutes = 120): Slot[] {
   const byDate = new Map<string, Slot[]>();
-  for (const slot of slots) byDate.set(slot.date, [...(byDate.get(slot.date) ?? []), slot]);
+
+  for (const slot of slots) {
+    byDate.set(slot.date, [...(byDate.get(slot.date) ?? []), slot]);
+  }
+
   const picked: Slot[] = [];
 
   for (const daySlots of byDate.values()) {
     const chosen: Slot[] = [];
 
     for (const slot of daySlots) {
-      if (chosen.length >= perDay) break;
+      if (chosen.length >= perDay) {
+        break;
+      }
+
       const last = chosen.at(-1);
+
       if (!last || slot.start.getTime() - last.start.getTime() >= spreadMinutes * 60_000) {
         chosen.push(slot);
       }
@@ -124,14 +142,23 @@ export function pickSlots(slots: readonly Slot[], perDay: number, spreadMinutes 
       let bestGap = -1;
 
       for (const slot of daySlots) {
-        if (chosen.includes(slot)) continue;
+        if (chosen.includes(slot)) {
+          continue;
+        }
+
         const gap = Math.min(
           ...chosen.map((c) => Math.abs(slot.start.getTime() - c.start.getTime())),
         );
-        if (gap > bestGap) [best, bestGap] = [slot, gap];
+
+        if (gap > bestGap) {
+          [best, bestGap] = [slot, gap];
+        }
       }
 
-      if (!best) break;
+      if (!best) {
+        break;
+      }
+
       chosen.push(best);
     }
 

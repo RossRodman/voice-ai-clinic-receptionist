@@ -29,6 +29,7 @@ export function ServicesTable() {
         <QueryState query={clinic} rows={5}>
           {(c) => {
             const providerName = new Map(c.providers.map((p) => [p.id, p.name]));
+
             return (
               <TableContainer component={Card}>
                 <Table aria-labelledby="services-title" sx={{ minWidth: 640 }}>

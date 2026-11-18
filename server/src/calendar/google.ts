@@ -112,9 +112,13 @@ export class GoogleCalendar implements CalendarClient {
       });
 
       const page = eventList.parse(await this.request(`${this.eventsUrl}?${params}`));
+
       for (const item of page.items) {
         const event = this.fromGoogle(item);
-        if (event) events.push(event);
+
+        if (event) {
+          events.push(event);
+        }
       }
 
       pageToken = page.nextPageToken;
@@ -163,7 +167,9 @@ export class GoogleCalendar implements CalendarClient {
     const start = this.instant(item.start);
     const end = this.instant(item.end);
 
-    if (!start || !end) return null;
+    if (!start || !end) {
+      return null;
+    }
 
     const appointment = fromPrivateProperties(item.extendedProperties?.private);
     const summary = item.summary ?? "(busy)";
@@ -181,9 +187,14 @@ export class GoogleCalendar implements CalendarClient {
   }
 
   private instant(time: z.infer<typeof eventTime>): Date | null {
-    if (time.dateTime) return new Date(time.dateTime);
+    if (time.dateTime) {
+      return new Date(time.dateTime);
+    }
     // All-day events: midnight to midnight in the clinic's zone.
-    if (time.date) return fromLocal(time.date, "00:00", this.options.timeZone);
+    if (time.date) {
+      return fromLocal(time.date, "00:00", this.options.timeZone);
+    }
+
     return null;
   }
 }

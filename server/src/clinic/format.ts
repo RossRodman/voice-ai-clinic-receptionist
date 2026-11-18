@@ -19,7 +19,9 @@ const dollars = new Intl.NumberFormat("en-US", {
 export function formatTime(hhmm: string): string {
   const [h = 0, m = 0] = hhmm.split(":").map(Number);
 
-  if (h === 12 && m === 0) return "noon";
+  if (h === 12 && m === 0) {
+    return "noon";
+  }
 
   const hour12 = h % 12 === 0 ? 12 : h % 12;
   const suffix = h < 12 ? "AM" : "PM";
@@ -52,7 +54,9 @@ export function hoursLines(hours: Clinic["hours"]): HoursLine[] {
     const day = WEEKDAYS[i];
     const startDay = WEEKDAYS[start]!;
 
-    if (day && describe(day) === describe(startDay)) continue;
+    if (day && describe(day) === describe(startDay)) {
+      continue;
+    }
 
     const endDay = WEEKDAYS[i - 1]!;
     const span = i - 1 - start;
@@ -64,10 +68,14 @@ export function hoursLines(hours: Clinic["hours"]): HoursLine[] {
     lines.push({ days, hours: describe(startDay) });
     start = i;
   }
+
   return lines;
 }
 
 export function joinList(items: readonly string[], conjunction = "and"): string {
-  if (items.length <= 1) return items.join("");
+  if (items.length <= 1) {
+    return items.join("");
+  }
+
   return `${items.slice(0, -1).join(", ")} ${conjunction} ${items.at(-1)}`;
 }

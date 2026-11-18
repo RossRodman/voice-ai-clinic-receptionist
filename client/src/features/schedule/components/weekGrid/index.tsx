@@ -15,8 +15,14 @@ interface WeekGridProps {
 }
 
 function emptyLabel(day: ScheduleDay, today: string): string {
-  if (day.closed) return "Closed";
-  if (day.date === today) return "Nothing left today";
+  if (day.closed) {
+    return "Closed";
+  }
+
+  if (day.date === today) {
+    return "Nothing left today";
+  }
+
   return "Fully booked";
 }
 
@@ -70,6 +76,7 @@ export function WeekGrid({ schedule, providerNames, onWeek, isFetching }: WeekGr
       >
         {days.map((day) => {
           const [weekday, date] = day.label.split(", ");
+
           return (
             <Card
               key={day.date}

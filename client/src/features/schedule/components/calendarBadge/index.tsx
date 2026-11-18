@@ -21,6 +21,7 @@ const BADGE = {
 
 export function CalendarBadge({ kind }: { kind: CalendarKind }) {
   const badge = BADGE[kind];
+
   return (
     <Tooltip title={badge.hint}>
       <Chip

@@ -1,5 +1,8 @@
 export type {
   Appointment,
+  AssistantOverview,
+  AssistantSetup,
+  AssistantTool,
   AvailabilityParams,
   AvailabilityToolResult,
   BookingRecord,
@@ -11,6 +14,9 @@ export type {
   CallStatus,
   CallSummary,
   Clinic,
+  EndCallTool,
+  FunctionParameter,
+  FunctionTool,
   Health,
   HoursLine,
   KnowledgeEntry,
@@ -25,5 +31,7 @@ export type {
   TimeOfDay,
   ToolCallRecord,
   ToolResult,
+  TransferTool,
   TranscriptTurn,
+  VapiAssistant,
 } from "@/api";

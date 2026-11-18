@@ -6,6 +6,7 @@ const formatters = new Map<string, Intl.DateTimeFormat>();
 
 function partsFormatter(timeZone: string): Intl.DateTimeFormat {
   let formatter = formatters.get(timeZone);
+
   if (!formatter) {
     formatter = new Intl.DateTimeFormat("en-US", {
       timeZone,
@@ -19,6 +20,7 @@ function partsFormatter(timeZone: string): Intl.DateTimeFormat {
     });
     formatters.set(timeZone, formatter);
   }
+
   return formatter;
 }
 
@@ -32,10 +34,13 @@ export interface LocalDateTime {
 
 export function toLocal(instant: Date, timeZone: string): LocalDateTime {
   const parts: Record<string, string> = {};
+
   for (const { type, value } of partsFormatter(timeZone).formatToParts(instant)) {
     parts[type] = value;
   }
+
   const time = `${parts.hour}:${parts.minute}`;
+
   return {
     date: `${parts.year}-${parts.month}-${parts.day}`,
     time,
@@ -45,11 +50,13 @@ export function toLocal(instant: Date, timeZone: string): LocalDateTime {
 
 export function offsetMinutes(instant: Date, timeZone: string): number {
   const p: Record<string, number> = {};
+
   for (const { type, value } of partsFormatter(timeZone).formatToParts(instant)) {
     p[type] = Number(value);
   }
 
   const asUtc = Date.UTC(p.year!, p.month! - 1, p.day!, p.hour!, p.minute!, p.second!);
+
   return Math.round((asUtc - Math.floor(instant.getTime() / 1000) * 1000) / 60_000);
 }
 
@@ -62,14 +69,18 @@ export function fromLocal(date: string, time: string, timeZone: string): Date {
   const guess = wall - first * 60_000;
   const second = offsetMinutes(new Date(guess), timeZone);
 
-  if (second === first) return new Date(guess);
+  if (second === first) {
+    return new Date(guess);
+  }
 
   const retry = wall - second * 60_000;
+
   return offsetMinutes(new Date(retry), timeZone) === second ? new Date(retry) : new Date(guess);
 }
 
 export function addDays(date: string, days: number): string {
   const [y, m, d] = date.split("-").map(Number) as [number, number, number];
+
   return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
 }
 
@@ -83,17 +94,20 @@ export function isValidDate(date: string): boolean {
 
 export function weekdayOf(date: string): Weekday {
   const day = new Date(`${date}T00:00:00Z`).getUTCDay();
+
   return WEEKDAYS[(day + 6) % 7]!;
 }
 
 export function toMinutes(time: string): number {
   const [h = 0, m = 0] = time.split(":").map(Number);
+
   return h * 60 + m;
 }
 
 export function fromMinutes(minutes: number): string {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
+
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 

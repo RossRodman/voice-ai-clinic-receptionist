@@ -68,7 +68,11 @@ const argsSchema = z.object({
 export function normalizePhone(raw: string): string | null {
   const trimmed = raw.trim();
   const digits = trimmed.replace(/\D/g, "");
-  if (digits.length < 7 || digits.length > 15) return null;
+
+  if (digits.length < 7 || digits.length > 15) {
+    return null;
+  }
+
   return trimmed.startsWith("+") ? `+${digits}` : digits;
 }
 
@@ -80,6 +84,7 @@ export function toBookingResult(result: BookingResult) {
       provider,
       providerId,
     }));
+
     return {
       booked: false,
       reason: result.reason,
@@ -92,6 +97,7 @@ export function toBookingResult(result: BookingResult) {
   }
 
   const a = result.appointment;
+
   return {
     booked: true,
     appointmentId: a.id,
@@ -110,16 +116,21 @@ export function toBookingResult(result: BookingResult) {
 export function bookAppointment(booking: BookingService): ToolHandler {
   return async (args, { call, log }) => {
     const parsed = argsSchema.safeParse(args);
+
     if (!parsed.success) {
       throw new ToolError(`Invalid arguments. ${describeIssues(parsed.error)}`);
     }
+
     const { patientPhone: given, ...rest } = parsed.data;
 
     const rawPhone = given ?? call?.customer?.number;
+
     if (!rawPhone) {
       throw new ToolError("No phone number: ask the caller for one and pass it as patientPhone.");
     }
+
     const patientPhone = normalizePhone(rawPhone);
+
     if (!patientPhone) {
       throw new ToolError(`"${rawPhone}" is not a full phone number. Ask the caller to repeat it.`);
     }
@@ -144,9 +155,13 @@ export function bookAppointment(booking: BookingService): ToolHandler {
         },
         "booking",
       );
+
       return toBookingResult(result);
     } catch (err) {
-      if (err instanceof BookingError) throw new ToolError(err.message);
+      if (err instanceof BookingError) {
+        throw new ToolError(err.message);
+      }
+
       throw err;
     }
   };
