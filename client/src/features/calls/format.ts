@@ -6,6 +6,7 @@ export function clock(seconds: number): string {
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
   const pad = (n: number) => String(n).padStart(2, "0");
+
   return h ? `${h}:${pad(m)}:${pad(s % 60)}` : `${m}:${pad(s % 60)}`;
 }
 
@@ -16,9 +17,17 @@ export function callTime(iso: string, timeZone?: string, now = new Date()): stri
   const date = new Date(iso);
   const time = date.toLocaleTimeString("en-US", { timeZone, hour: "numeric", minute: "2-digit" });
   const day = dayKey(date, timeZone);
-  if (day === dayKey(now, timeZone)) return `Today, ${time}`;
-  if (day === dayKey(new Date(now.getTime() - 86_400_000), timeZone)) return `Yesterday, ${time}`;
+
+  if (day === dayKey(now, timeZone)) {
+    return `Today, ${time}`;
+  }
+
+  if (day === dayKey(new Date(now.getTime() - 86_400_000), timeZone)) {
+    return `Yesterday, ${time}`;
+  }
+
   const sameYear = date.getFullYear() === now.getFullYear();
+
   return date.toLocaleString("en-US", {
     timeZone,
     weekday: "short",
@@ -40,23 +49,17 @@ export function appointmentTime(iso: string, timeZone?: string): string {
     day: "numeric",
   });
   const time = date.toLocaleTimeString("en-US", { timeZone, hour: "numeric", minute: "2-digit" });
+
   return `${day} at ${time}`;
 }
 
 export function caller(number: string | null, type: string | null): string {
-  if (number) return number;
+  if (number) {
+    return number;
+  }
+
   return type === "webCall" ? "Web call" : "Unknown number";
 }
-
-const TOOL_LABELS: Record<string, string> = {
-  search_knowledge_base: "Searched the knowledge base",
-  check_availability: "Checked free times",
-  book_appointment: "Booked an appointment",
-  transferCall: "Transferred the call",
-  endCall: "Ended the call",
-};
-
-export const toolLabel = (name: string) => TOOL_LABELS[name] ?? `Ran ${name}`;
 
 export type ConversationItem =
   | { kind: "turn"; at: number; turn: TranscriptTurn }
@@ -72,5 +75,6 @@ export function conversation(call: CallDetail): ConversationItem[] {
       toolCall,
     })),
   ];
+
   return items.toSorted((a, b) => a.at - b.at);
 }

@@ -15,13 +15,13 @@ const BADGE = {
     label: "Call log in memory",
     color: "warning",
     icon: <ScienceOutlined />,
-    hint:
-      "Supabase is not configured, so the server keeps calls in memory. They are lost when it restarts.",
+    hint: "Supabase is not configured, so the server keeps calls in memory. They are lost when it restarts.",
   },
 } as const;
 
 export function CallLogBadge({ kind }: { kind: CallLogKind }) {
   const badge = BADGE[kind];
+
   return (
     <Tooltip title={badge.hint}>
       <Chip

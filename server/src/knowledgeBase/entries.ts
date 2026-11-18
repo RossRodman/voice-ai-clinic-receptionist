@@ -36,9 +36,12 @@ export function parseFaq(markdown: string): KnowledgeEntry[] {
         .filter(Boolean);
       body = body.slice(match[0].length).trim();
     }
+
     const content = body.replace(/\s*\n\s*/g, " ");
 
-    if (!title || !content) throw new Error(`FAQ entry "${title || "(no title)"}" is empty`);
+    if (!title || !content) {
+      throw new Error(`FAQ entry "${title || "(no title)"}" is empty`);
+    }
 
     return { id: `faq:${slugify(title)}`, title, content, keywords, source: "faq" };
   });

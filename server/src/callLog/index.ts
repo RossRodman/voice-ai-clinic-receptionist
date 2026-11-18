@@ -9,8 +9,8 @@ export * from "./types.ts";
 export function createCallStore(config: Config): CallStore {
   return config.supabase
     ? new SupabaseCallStore({
-      url: config.supabase.url,
-      key: config.supabase.secretKey,
-    })
+        url: config.supabase.url,
+        key: config.supabase.secretKey,
+      })
     : new InMemoryCallStore();
 }

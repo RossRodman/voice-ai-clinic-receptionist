@@ -1,5 +1,6 @@
 import type {
   Appointment,
+  AssistantOverview,
   CallDetail,
   CallSummary,
   AvailabilityToolResult,
@@ -255,4 +256,72 @@ export const CALL: CallDetail = {
       createdAt: "2026-11-17T16:00:23.000Z",
     },
   ],
+};
+
+export const ASSISTANT: AssistantOverview = {
+  assistant: {
+    name: "Brightside Dental receptionist",
+    firstMessage:
+      "Thank you for calling Brightside Dental, this is Ava, the virtual assistant. How can I help you today?",
+    endCallMessage: "Thanks for calling Brightside Dental. Have a great day!",
+    model: {
+      provider: "anthropic",
+      model: "claude-sonnet-5-5",
+      temperature: 0.3,
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are Ava, the virtual receptionist at Brightside Dental.\n\n## How you speak\n- Ask one question at a time.",
+        },
+      ],
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: "check_availability",
+            description: "Find free appointment times for a service in the clinic's calendar.",
+            parameters: {
+              properties: {
+                serviceId: { type: "string", description: "What the visit is for." },
+                timeOfDay: { type: "string", enum: ["morning", "afternoon", "any"] },
+              },
+              required: ["serviceId"],
+            },
+          },
+          messages: [{ type: "request-start", content: "Let me check the schedule." }],
+        },
+        {
+          type: "transferCall",
+          destinations: [
+            {
+              type: "number",
+              number: "+15550142300",
+              message: "Sure, I'm putting you through to the front desk now. Please hold.",
+              description: "The front desk at Brightside Dental",
+            },
+          ],
+        },
+        { type: "endCall" },
+      ],
+    },
+    voice: { provider: "vapi", voiceId: "Savannah" },
+    transcriber: {
+      provider: "deepgram",
+      model: "nova-3",
+      language: "en",
+      keyterm: ["Brightside Dental", "Okafor"],
+    },
+    maxDurationSeconds: 900,
+    silenceTimeoutSeconds: 30,
+    server: { url: "https://receptionist.example.com/vapi/webhook" },
+  },
+  setup: {
+    webhookUrl: "https://receptionist.example.com/vapi/webhook",
+    transferNumber: "+15550142300",
+    apiKey: true,
+    assistantId: null,
+    phoneNumberId: null,
+    model: "anthropic/claude-sonnet-5-5",
+  },
 };

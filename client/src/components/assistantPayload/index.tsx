@@ -6,9 +6,13 @@ import { Styled } from "@/styled";
 
 interface AssistantPayloadProps {
   value: unknown;
+  label?: string;
 }
 
-export function AssistantPayload({ value }: AssistantPayloadProps) {
+export function AssistantPayload({
+  value,
+  label = "what the assistant receives",
+}: AssistantPayloadProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -19,7 +23,7 @@ export function AssistantPayload({ value }: AssistantPayloadProps) {
         onClick={() => setOpen((isOpen) => !isOpen)}
         aria-expanded={open}
       >
-        {open ? "Hide" : "Show"} what the assistant receives
+        {open ? "Hide" : "Show"} {label}
       </Button>
       <Collapse in={open} unmountOnExit>
         <Box

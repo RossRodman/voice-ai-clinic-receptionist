@@ -43,7 +43,9 @@ export function OutcomeChip({ status, outcome }: OutcomeChipProps) {
       />
     );
   }
+
   const o = outcome ? OUTCOMES[outcome] : undefined;
+
   return (
     <Chip
       size="small"

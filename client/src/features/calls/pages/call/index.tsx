@@ -15,10 +15,7 @@ function Call({ call, timeZone }: { call: CallDetail; timeZone?: string }) {
   return (
     <Stack spacing={{ xs: 4, md: 5 }}>
       <Stack spacing={1.5}>
-        <Typography
-          variant="h1"
-          sx={[Styled.Mono, { fontSize: { xs: "1.75rem", sm: "2.25rem" } }]}
-        >
+        <Typography variant="h1" sx={[Styled.Mono, { fontSize: { xs: "1.75rem", sm: "2.25rem" } }]}>
           {caller(call.customerNumber, call.type)}
         </Typography>
         <Stack
@@ -42,17 +39,8 @@ function Call({ call, timeZone }: { call: CallDetail; timeZone?: string }) {
       </Stack>
 
       <Grid container spacing={3}>
-        <Grid
-          size={{ xs: 12, md: 8 }}
-          component="section"
-          aria-labelledby="conversation-title"
-        >
-          <Typography
-            id="conversation-title"
-            variant="h3"
-            component="h2"
-            sx={{ mb: 2 }}
-          >
+        <Grid size={{ xs: 12, md: 8 }} component="section" aria-labelledby="conversation-title">
+          <Typography id="conversation-title" variant="h3" component="h2" sx={{ mb: 2 }}>
             Conversation
           </Typography>
           <Conversation call={call} />
@@ -73,20 +61,12 @@ export function CallPage() {
   return (
     <Stack spacing={3}>
       <Box>
-        <Button
-          component={Link}
-          to="/calls"
-          startIcon={<ArrowBackRounded />}
-          sx={{ ml: -1 }}
-        >
+        <Button component={Link} to="/calls" startIcon={<ArrowBackRounded />} sx={{ ml: -1 }}>
           All calls
         </Button>
       </Box>
       <QueryState query={call} rows={5}>
-        {(data) => <Call
-          call={data.call}
-          {...(timeZone ? { timeZone } : {})}
-        />}
+        {(data) => <Call call={data.call} {...(timeZone ? { timeZone } : {})} />}
       </QueryState>
     </Stack>
   );

@@ -29,6 +29,50 @@ describe("GET /api/clinic", () => {
   });
 });
 
+describe("GET /api/assistant", () => {
+  it("shows the assistant without the secret, and what setup is missing", async () => {
+    const res = await get("/api/assistant");
+    const { assistant, setup } = res.json();
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).not.toContain(TEST_SECRET);
+    expect(assistant.server).toEqual({
+      url: "https://<PUBLIC_URL>/vapi/webhook",
+      headers: { "x-vapi-secret": "<VAPI_SERVER_SECRET>" },
+    });
+    expect(setup).toEqual({
+      webhookUrl: null,
+      transferNumber: null,
+      apiKey: false,
+      assistantId: null,
+      phoneNumberId: null,
+      model: "anthropic/claude-sonnet-5-5",
+    });
+  });
+
+  it("uses the public URL and the transfer number when they are set", async () => {
+    const configured = await testApp({
+      config: {
+        publicUrl: "https://receptionist.example.com",
+        transferNumber: "+15550142300",
+        vapi: { serverSecret: TEST_SECRET, apiKey: "private-key-123" },
+      },
+    });
+    const { assistant, setup } = (
+      await configured.inject({ method: "GET", url: "/api/assistant" })
+    ).json();
+
+    expect(setup).toMatchObject({
+      webhookUrl: "https://receptionist.example.com/vapi/webhook",
+      transferNumber: "+15550142300",
+      apiKey: true,
+    });
+    expect(assistant.model.tools.map((t: { type: string }) => t.type)).toContain("transferCall");
+
+    await configured.close();
+  });
+});
+
 describe("GET /api/availability", () => {
   it("returns what check_availability would give the assistant", async () => {
     const res = await get("/api/availability?serviceId=crown&date=2026-11-19&timeOfDay=morning");

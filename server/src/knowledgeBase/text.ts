@@ -89,17 +89,28 @@ const SYNONYMS: Record<string, string> = {
 };
 
 export function stem(word: string): string {
-  if (word.length > 5 && word.endsWith("ing")) return word.slice(0, -3);
-  if (word.length > 4 && word.endsWith("ies")) return `${word.slice(0, -3)}y`;
-  if (word.length > 4 && word.endsWith("ed")) return word.slice(0, -2);
+  if (word.length > 5 && word.endsWith("ing")) {
+    return word.slice(0, -3);
+  }
+
+  if (word.length > 4 && word.endsWith("ies")) {
+    return `${word.slice(0, -3)}y`;
+  }
+
+  if (word.length > 4 && word.endsWith("ed")) {
+    return word.slice(0, -2);
+  }
+
   if (word.length > 3 && word.endsWith("s") && !/(ss|us|is)$/.test(word)) {
     return word.slice(0, -1);
   }
+
   return word;
 }
 
 function term(word: string): string {
   const stemmed = stem(word);
+
   return SYNONYMS[stemmed] ?? SYNONYMS[word] ?? stemmed;
 }
 
@@ -110,5 +121,6 @@ export function tokenize(text: string): string[] {
     .replace(/x-?rays?/g, "xray")
     .replace(/['’]/g, " ");
   const words = normalized.match(/[\p{L}\p{N}]+/gu) ?? [];
+
   return words.filter((w) => !STOP_WORDS.has(w) && !/^\d+$/.test(w)).map(term);
 }

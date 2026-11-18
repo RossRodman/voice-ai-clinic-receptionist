@@ -1,4 +1,5 @@
 import Fastify, { type FastifyServerOptions } from "fastify";
+import { assistantOverview } from "./assistant/index.ts";
 import { BookingService } from "./booking/service.ts";
 import type { CalendarClient } from "./calendar/types.ts";
 import { CallRecorder, type CallStore } from "./callLog/index.ts";
@@ -19,7 +20,9 @@ export interface AppDeps {
 }
 
 function loggerOptions(config: Config): FastifyServerOptions["logger"] {
-  if (config.env === "test") return false;
+  if (config.env === "test") {
+    return false;
+  }
 
   if (config.env === "development") {
     return {
@@ -60,6 +63,7 @@ export async function buildApp(config: Config, deps: AppDeps) {
     ...deps.clinic,
     booking,
     calls: deps.callStore,
+    assistant: assistantOverview(config, deps.clinic.clinic),
   });
 
   await app.register(vapiRoutes, {

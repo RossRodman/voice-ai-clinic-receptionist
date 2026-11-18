@@ -105,6 +105,7 @@ class Mutex {
   run<T>(task: () => Promise<T>): Promise<T> {
     const result = this.tail.then(task);
     this.tail = result.catch(() => undefined);
+
     return result;
   }
 }
@@ -132,6 +133,7 @@ export class BookingService {
 
   service(serviceId: string): Service {
     const service = this.clinic.services.find((s) => s.id === serviceId);
+
     if (!service) {
       throw new BookingError(
         `Unknown service "${serviceId}". Use one of: ${this.clinic.services
@@ -169,6 +171,7 @@ export class BookingService {
 
   private offer(slot: Slot, providerId?: string): OfferedSlot {
     const chosen = providerId ?? slot.providerIds[0]!;
+
     return {
       start: toZonedIso(slot.start, this.clinic.timezone),
       date: slot.date,
@@ -205,7 +208,9 @@ export class BookingService {
           providerId: filter.providerId,
         }).filter((s) => matchesTimeOfDay(s, filter.timeOfDay));
 
-        if (slots.length > 0) found.push(slots);
+        if (slots.length > 0) {
+          found.push(slots);
+        }
       }
 
       chunk = addDays(chunkEnd, 1);
@@ -241,6 +246,7 @@ export class BookingService {
 
     if (date === undefined) {
       const days = await this.scanDays(service, window.today, DAYS_OFFERED, filter);
+
       return {
         ...base,
         slots: offerDays(days, 2),
@@ -251,6 +257,7 @@ export class BookingService {
     if (!isValidDate(date)) {
       throw new BookingError(`"${date}" is not a date. Use YYYY-MM-DD.`);
     }
+
     if (date < window.today) {
       throw new BookingError(
         `${spokenDate(
@@ -273,6 +280,7 @@ export class BookingService {
     }
 
     const [first] = await this.scanDays(service, date, 1, filter);
+
     if (first?.[0]?.date === date) {
       return {
         ...requested,
@@ -298,12 +306,14 @@ export class BookingService {
 
   private whyNothingOn(date: string, timeOfDay: TimeOfDay, providerId?: string): string {
     const day = spokenDate(date);
+
     if (this.clinic.hours[weekdayOf(date)].length === 0) {
       return `The clinic is closed on ${day.split(",")[0]}s.`;
     }
 
     const part = timeOfDay === "any" ? "" : ` in the ${timeOfDay}`;
     const who = providerId ? ` with ${this.providerName(providerId)}` : "";
+
     return date === bookingWindow(this.clinic, this.now()).today
       ? `There is nothing left today${part}${who}.`
       : `${day} is fully booked${part}${who}.`;
@@ -311,11 +321,13 @@ export class BookingService {
 
   private nothingFree(service: Service, providerId?: string): string {
     const who = providerId ? ` with ${this.providerName(providerId)}` : "";
+
     return `No free times for ${service.name.toLowerCase()}${who} in the next ${this.clinic.booking.maxDaysAhead} days.`;
   }
 
   parseStart(start: string): Date {
     const match = LOCAL_START.exec(start.trim());
+
     if (!match || !isValidDate(match[1]!)) {
       throw new BookingError(
         `"${start}" is not a start time. Pass the "start" of a slot from check_availability.`,
@@ -383,6 +395,7 @@ export class BookingService {
 
       if (!providerId) {
         const who = request.providerId ? ` with ${this.providerName(request.providerId)}` : "";
+
         return unavailable(`${spokenDate(date)} at ${formatTime(time)}${who} was just taken.`);
       }
 
@@ -403,7 +416,11 @@ export class BookingService {
       });
 
       const appointment = this.toAppointment(event)!;
-      for (const listener of this.bookedListeners) listener(appointment);
+
+      for (const listener of this.bookedListeners) {
+        listener(appointment);
+      }
+
       return { status: "booked", appointment, alreadyBooked: false };
     });
   }
@@ -413,9 +430,13 @@ export class BookingService {
     const window = bookingWindow(this.clinic, now);
     const when = `${spokenDate(date)} at ${formatTime(time)}`;
 
-    if (start <= now) return `${when} has passed.`;
+    if (start <= now) {
+      return `${when} has passed.`;
+    }
+
     if (start < window.earliest) {
       const hours = this.clinic.booking.minNoticeMinutes / 60;
+
       return `${when} is too soon: appointments need ${hours} ${
         hours === 1 ? "hour" : "hours"
       } notice.`;
@@ -449,7 +470,10 @@ export class BookingService {
 
   toAppointment(event: CalendarEvent): Appointment | undefined {
     const a = event.appointment;
-    if (!a) return undefined;
+
+    if (!a) {
+      return undefined;
+    }
 
     const { date, time } = toLocal(event.start, this.clinic.timezone);
     const service = this.clinic.services.find((s) => s.id === a.serviceId);
@@ -475,6 +499,7 @@ export class BookingService {
   async upcoming(days = 30): Promise<Appointment[]> {
     const now = this.now();
     const events = await this.calendar.listEvents(now, new Date(now.getTime() + days * 86_400_000));
+
     return events.flatMap((e) => this.toAppointment(e) ?? []);
   }
 

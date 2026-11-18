@@ -231,7 +231,9 @@ describe("book", () => {
       status: "unavailable",
       reason: "Wednesday, November 18 at 9 AM was just taken.",
     });
-    if (second.status !== "unavailable") throw new Error("expected unavailable");
+    if (second.status !== "unavailable") {
+      throw new Error("expected unavailable");
+    }
     expect(second.alternatives.length).toBeGreaterThan(0);
     expect(second.alternatives.map((s) => s.start)).not.toContain("2026-11-18T09:00:00-06:00");
     expect(calendar.size).toBe(1);

@@ -160,6 +160,27 @@ In **Front Desk**, the **Calls** page lists the latest calls with their outcome 
 2. Run [`supabase/migrations/20261118120000_call_log.sql`](supabase/migrations/20261118120000_call_log.sql) in the **SQL editor** (or `supabase link` and `supabase db push` with the Supabase CLI).
 3. Set `SUPABASE_URL` (Project Settings → API → Project URL) and `SUPABASE_SECRET_KEY` (a secret key, `sb_secret_…`, or the legacy `service_role` key) in `.env`, and restart. The log says `logging calls to Supabase`, and Front Desk shows **Supabase** on the Calls page.
 
+## The assistant
+
+The Vapi assistant is code, not clicks in a dashboard. [`server/src/assistant`](server/src/assistant) builds it from `clinic.json`, and `npm run assistant:sync` creates it in Vapi or updates it. Change the opening hours or add a dentist, sync, and the prompt, the function definitions and the transcriber's word list follow; nothing is copied by hand.
+
+**The prompt** is written for a phone call: one or two short sentences, one question at a time, times and prices said the way people say them. It holds only what never changes during a call (opening hours, address, the dentists) and sends everything else to `search_knowledge_base`, so the model never quotes a price from memory. The booking steps are spelled out: what the visit is for, new or returning patient, a day, two or three times from `check_availability`, the name spelled and the number confirmed, read back, then `book_appointment`. So are emergencies (911 for danger signs, the soonest emergency visit for tooth pain) and when to hand over: a caller who asks for a person, cancelling or rescheduling, a bill, a function that fails.
+
+**The functions** are the server's own definitions, sent with the webhook URL and the secret, so Vapi can't call a function the server doesn't have, and a test checks they match. `check_availability` and `book_appointment` say "Let me check the schedule" while they run. `transferCall` forwards the call to `TRANSFER_NUMBER`; without one it is left out and the prompt tells the assistant to give out the clinic's number instead. `endCall` hangs up after the goodbye.
+
+**Everything else:** Claude Sonnet by default (`VAPI_MODEL` takes any `provider/model` Vapi supports), Deepgram Nova-3 speech to text with the clinic's names and insurance plans as key terms (so "Okafor" isn't heard as "okay for"), a Vapi voice, recording on, calls capped at 15 minutes, and a summary prompt written for the front desk staff, which lands in the call log.
+
+**Sync.** With `VAPI_ASSISTANT_ID` it updates that assistant; without it, it updates the one with the same name or creates one, so running it twice never makes two. With `VAPI_PHONE_NUMBER_ID` it also points that phone number at the assistant. `npm run assistant:print` shows what would be sent, with the secret hidden.
+
+In **Front Desk**, the **Assistant** page shows the setup steps still missing, the full prompt (with a copy button), the voice and model, and every function with its parameters, exactly as the model sees them.
+
+### Connecting Vapi
+
+1. Start the server and give it a public https address: `ngrok http 3000` (or `cloudflared tunnel --url http://localhost:3000`). Set `PUBLIC_URL` to it.
+2. In the [Vapi dashboard](https://dashboard.vapi.ai), copy a **private** API key into `VAPI_API_KEY`. Optionally set `TRANSFER_NUMBER` to the front desk's phone.
+3. `cd server && npm run assistant:sync`. It prints the assistant's id: put it in `VAPI_ASSISTANT_ID`.
+4. Buy or import a number under **Phone Numbers** and choose the assistant there, or set `VAPI_PHONE_NUMBER_ID` and sync again. Call it, or use **Talk to Assistant** in the dashboard, and the call shows up in Front Desk → Calls.
+
 ## Roadmap
 
 The project is built pull request by pull request:
@@ -170,7 +191,7 @@ The project is built pull request by pull request:
 | 2 | **Knowledge base**: Brightside Dental's services, prices, hours, insurance and FAQ; `search_knowledge_base`; the Knowledge base page in Front Desk | ✅ |
 | 3 | **Google Calendar**: `check_availability` and `book_appointment`, with tests for the slot and booking logic; the Schedule page in Front Desk | ✅ |
 | 4 | **Call log in Supabase**: schema and migrations; calls, tool calls and bookings stored as they happen, completed by the end-of-call report; `npm run demo:call`; the Calls page in Front Desk | ✅ |
-| 5 | **The Vapi assistant**: system prompt, tools, transfer to a person; a script that creates or updates it through the Vapi API | |
+| 5 | **The Vapi assistant**: system prompt and functions built from `clinic.json`, transfer to the front desk, `npm run assistant:sync` through the Vapi API; the Assistant page in Front Desk | ✅ |
 | 6 | **Front Desk overview and sign-in**: stats (calls per day, outcomes, booking rate), filters for the call log; sign-in for Front Desk and `/api` | |
 | 7 | **A real test call**: recording, transcript and walkthrough in this README | |
 
@@ -235,6 +256,7 @@ Whole calls, as Vapi sends them: `cd server && npm run demo:call`, then open **C
 | `POST /vapi/webhook` | Vapi server messages; needs the secret |
 | `GET /health` | Liveness |
 | `GET /api/clinic` | The clinic, with hours and prices as the assistant says them |
+| `GET /api/assistant` | The Vapi assistant as it would be synced (secret hidden), and which setup steps are done |
 | `GET /api/knowledge-base` | All entries |
 | `GET /api/knowledge-base/search?q=` | A search with scores, plus the exact tool result the assistant gets |
 | `GET /api/availability?serviceId=&date=&timeOfDay=&providerId=` | The exact `check_availability` result |
@@ -245,13 +267,19 @@ Whole calls, as Vapi sends them: `cd server && npm run demo:call`, then open **C
 
 `/api` has no sign-in yet (it comes in PR 6), and `/api/appointments` and `/api/calls` return patients' names, phone numbers and transcripts. Until then, don't expose it with real patient data: the tunnel only needs `/vapi/webhook`.
 
-Vapi has to reach the server over HTTPS. For local development, expose it with a tunnel (`ngrok http 3000` or `cloudflared tunnel --url http://localhost:3000`) and use `https://<tunnel>/vapi/webhook` as the assistant's Server URL, with the same secret.
+Vapi has to reach the server over HTTPS. For local development, expose it with a tunnel (`ngrok http 3000` or `cloudflared tunnel --url http://localhost:3000`), set `PUBLIC_URL` and run `npm run assistant:sync`: see [Connecting Vapi](#connecting-vapi).
 
 ### Settings
 
 | Variable | Default | |
 |---|---|---|
 | `VAPI_SERVER_SECRET` | (required) | Shared secret Vapi sends in `x-vapi-secret` or as a Bearer token. 16+ characters |
+| `VAPI_API_KEY` | (empty) | Vapi private key, for `npm run assistant:sync` |
+| `PUBLIC_URL` | (empty) | The server's public https address; the assistant's webhook is `<PUBLIC_URL>/vapi/webhook` |
+| `TRANSFER_NUMBER` | (empty: no transfer) | The front desk's number in E.164, e.g. `+15550142300` |
+| `VAPI_ASSISTANT_ID` | (empty: found by name or created) | The assistant to update |
+| `VAPI_PHONE_NUMBER_ID` | (empty) | A Vapi phone number to point at the assistant on each sync |
+| `VAPI_MODEL` | `anthropic/claude-sonnet-5-5` | The assistant's LLM, `provider/model` |
 | `GOOGLE_CALENDAR_ID` | (empty: demo calendar) | The clinic's calendar |
 | `GOOGLE_SERVICE_ACCOUNT_KEY` | (empty) | The service account's JSON key, base64 (or the JSON itself) |
 | `SUPABASE_URL` | (empty: call log in memory) | The project URL, `https://<project>.supabase.co` |
@@ -267,6 +295,8 @@ Vapi has to reach the server over HTTPS. For local development, expose it with a
 | `npm run dev` | Server with reload and readable logs; the UI with hot reload |
 | `npm test` | Tests |
 | `npm run demo:call` | (server) Made-up calls through the running server's webhook |
+| `npm run assistant:sync` | (server) Create or update the assistant in Vapi |
+| `npm run assistant:print` | (server) Print the assistant as it would be synced |
 | `npm run lint`, `npm run format` | oxlint, Prettier |
 | `npm run typecheck`, `npm run build` | TypeScript |
 
@@ -284,6 +314,7 @@ server/                 the webhook server
     app.ts            builds the Fastify app (used by the tests too)
     config.ts         environment variables, checked with Zod
     routes/           GET /health; /api for Front Desk
+    assistant/        the Vapi assistant: prompt, functions, voice; the Vapi API client and sync
     clinic/           clinic.json schema; hours and prices as they are said
     knowledgeBase/    entries from both files, text processing, BM25 search
     calendar/         time zones; Google Calendar client and service-account auth; demo calendar
@@ -297,12 +328,13 @@ server/                 the webhook server
       tools.ts        runs tool calls: one result per call, errors the model can act on
     scripts/
       demoCall.ts     npm run demo:call: made-up calls through the webhook
+      syncAssistant.ts  npm run assistant:sync: create or update the assistant in Vapi
 client/                 Front Desk, the web UI
   src/
     app/              theme, router, query client
     api/              typed fetch client
     components/layout sidebar, header (server status, theme toggle), footer
-    features/         pages: dashboard, knowledge base, schedule, calls, not found
+    features/         pages: dashboard, assistant, knowledge base, schedule, calls, not found
   nginx.conf          serves the build, proxies /api and /health to the server
 supabase/
   migrations/         the call log's tables

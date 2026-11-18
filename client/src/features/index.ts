@@ -1,3 +1,4 @@
+export * from "./assistant";
 export * from "./calls";
 export * from "./dashboard";
 export * from "./knowledgeBase";

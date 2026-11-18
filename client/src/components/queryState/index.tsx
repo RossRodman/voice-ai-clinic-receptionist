@@ -9,7 +9,9 @@ interface QueryStateProps<T> {
 }
 
 export function QueryState<T>({ query, rows = 3, children }: QueryStateProps<T>) {
-  if (query.data !== undefined) return children(query.data);
+  if (query.data !== undefined) {
+    return children(query.data);
+  }
 
   if (query.isError) {
     return (

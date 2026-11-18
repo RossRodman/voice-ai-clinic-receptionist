@@ -45,7 +45,10 @@ export class InMemoryCallStore implements CallStore {
   }
 
   async openCall(call: CallUpdate): Promise<void> {
-    if (this.calls.has(call.id)) return;
+    if (this.calls.has(call.id)) {
+      return;
+    }
+
     this.calls.set(call.id, { ...this.newCall(call.id), ...defined(call) });
     this.trim();
   }
@@ -62,6 +65,7 @@ export class InMemoryCallStore implements CallStore {
         throw new Error(`tool call ${row.id}: call ${row.callId} does not exist`);
       }
     }
+
     for (const row of rows) {
       const current: ToolCallRow = this.toolCalls.get(row.id) ?? {
         id: row.id,
@@ -98,7 +102,9 @@ export class InMemoryCallStore implements CallStore {
   async getCall(id: string): Promise<CallDetail | null> {
     const call = this.calls.get(id);
 
-    if (!call) return null;
+    if (!call) {
+      return null;
+    }
 
     const toolCalls = [...this.toolCalls.values()]
       .filter((t) => t.callId === id)
@@ -115,12 +121,24 @@ export class InMemoryCallStore implements CallStore {
   }
 
   private trim() {
-    if (this.calls.size <= MAX_CALLS) return;
+    if (this.calls.size <= MAX_CALLS) {
+      return;
+    }
 
     for (const old of this.newestFirst().slice(MAX_CALLS)) {
       this.calls.delete(old.id);
-      for (const [key, t] of this.toolCalls) if (t.callId === old.id) this.toolCalls.delete(key);
-      for (const b of this.bookings.values()) if (b.callId === old.id) b.callId = null;
+
+      for (const [key, t] of this.toolCalls) {
+        if (t.callId === old.id) {
+          this.toolCalls.delete(key);
+        }
+      }
+
+      for (const b of this.bookings.values()) {
+        if (b.callId === old.id) {
+          b.callId = null;
+        }
+      }
     }
   }
 }

@@ -25,8 +25,13 @@ const GENERIC_ERROR =
   "The system could not complete this request. Apologize, and offer to transfer the caller to the front desk.";
 
 function parseArguments(raw: ToolCall["function"]["arguments"]): Record<string, unknown> {
-  if (raw === undefined || raw === "") return {};
-  if (typeof raw !== "string") return raw;
+  if (raw === undefined || raw === "") {
+    return {};
+  }
+
+  if (typeof raw !== "string") {
+    return raw;
+  }
 
   const parsed: unknown = JSON.parse(raw);
 
@@ -54,6 +59,7 @@ async function runOne(toolCall: ToolCall, tools: ToolRegistry, ctx: ToolContext)
 
   if (!handler) {
     log.warn("unknown tool");
+
     return done({ toolCallId, name, error: `Unknown tool "${name}".` });
   }
 
@@ -67,12 +73,17 @@ async function runOne(toolCall: ToolCall, tools: ToolRegistry, ctx: ToolContext)
   } catch (err) {
     if (err instanceof ToolError) {
       log.info({ reason: err.message }, "tool call refused");
+
       return done({ toolCallId, name, error: err.message });
     }
 
     if (err instanceof SyntaxError) {
       log.warn({ err }, "tool arguments are not valid JSON");
-      if (typeof fn.arguments === "string") args = { raw: fn.arguments };
+
+      if (typeof fn.arguments === "string") {
+        args = { raw: fn.arguments };
+      }
+
       return done({ toolCallId, name, error: "Tool arguments are not valid JSON." });
     }
 

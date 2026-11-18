@@ -66,23 +66,26 @@ const NUMERIC = new Set(["cost", "secondsFromStart"]);
 
 function toDb(value: object, columns: Columns): Record<string, unknown> {
   const row: Record<string, unknown> = {};
+
   for (const [field, v] of Object.entries(value)) {
     const column = columns[field];
-    if (column && v !== undefined) row[column] = v;
+
+    if (column && v !== undefined) {
+      row[column] = v;
+    }
   }
+
   return row;
 }
 
-function fromDb<T>(
-  row: Record<string, unknown>,
-  columns: Columns,
-  fields?: string[],
-): T {
+function fromDb<T>(row: Record<string, unknown>, columns: Columns, fields?: string[]): T {
   const value: Record<string, unknown> = {};
+
   for (const field of fields ?? Object.keys(columns)) {
     const v = row[columns[field]!] ?? null;
     value[field] = NUMERIC.has(field) && v !== null ? Number(v) : v;
   }
+
   return value as T;
 }
 
@@ -106,9 +109,7 @@ export class SupabaseCallStore implements CallStore {
     this.rest = `${options.url.replace(/\/+$/, "")}/rest/v1`;
     this.headers = {
       apikey: options.key,
-      ...(options.key.startsWith("eyJ")
-        ? { authorization: `Bearer ${options.key}` }
-        : {}),
+      ...(options.key.startsWith("eyJ") ? { authorization: `Bearer ${options.key}` } : {}),
     };
 
     this.fetchFn = options.fetchFn ?? fetch;
@@ -120,24 +121,21 @@ export class SupabaseCallStore implements CallStore {
     init: { method?: string; body?: unknown; prefer?: string } = {},
   ): Promise<unknown> {
     let response: Response;
+
     try {
       response = await this.fetchFn(`${this.rest}${path}`, {
         method: init.method ?? "GET",
         headers: {
           ...this.headers,
           accept: "application/json",
-          ...(init.body === undefined
-            ? {}
-            : { "content-type": "application/json" }),
+          ...(init.body === undefined ? {} : { "content-type": "application/json" }),
           ...(init.prefer ? { prefer: init.prefer } : {}),
         },
         ...(init.body === undefined ? {} : { body: JSON.stringify(init.body) }),
         signal: AbortSignal.timeout(this.timeoutMs),
       });
     } catch (err) {
-      throw new CallStoreError(
-        `Supabase is unreachable: ${(err as Error).message}`,
-      );
+      throw new CallStoreError(`Supabase is unreachable: ${(err as Error).message}`);
     }
 
     const text = await response.text();
@@ -177,7 +175,10 @@ export class SupabaseCallStore implements CallStore {
   }
 
   async saveToolCalls(toolCalls: ToolCallUpdate[]): Promise<void> {
-    if (toolCalls.length === 0) return;
+    if (toolCalls.length === 0) {
+      return;
+    }
+
     await this.upsert(
       "tool_calls",
       toolCalls.map((t) => toDb(t, TOOL_CALL_COLUMNS)),
@@ -197,9 +198,8 @@ export class SupabaseCallStore implements CallStore {
       limit: String(limit),
     });
     const body = rows.parse(await this.request(`/calls?${params}`));
-    return body.map((row) =>
-      fromDb<CallSummary>(row, CALL_COLUMNS, SUMMARY_FIELDS)
-    );
+
+    return body.map((row) => fromDb<CallSummary>(row, CALL_COLUMNS, SUMMARY_FIELDS));
   }
 
   async getCall(id: string): Promise<CallDetail | null> {
@@ -211,16 +211,16 @@ export class SupabaseCallStore implements CallStore {
     });
     const [row] = rows.parse(await this.request(`/calls?${params}`));
 
-    if (!row) return null;
+    if (!row) {
+      return null;
+    }
 
     return {
       ...fromDb<CallRow>(row, CALL_COLUMNS),
       toolCalls: rows
         .parse(row.tool_calls ?? [])
         .map((t) => fromDb<ToolCallRow>(t, TOOL_CALL_COLUMNS)),
-      bookings: rows.parse(row.bookings ?? []).map((b) =>
-        fromDb<BookingRow>(b, BOOKING_COLUMNS)
-      ),
+      bookings: rows.parse(row.bookings ?? []).map((b) => fromDb<BookingRow>(b, BOOKING_COLUMNS)),
     };
   }
 }

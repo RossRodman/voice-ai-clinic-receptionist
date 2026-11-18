@@ -42,6 +42,7 @@ let clinicData: Promise<ClinicData> | undefined;
 
 export function testClinic(): Promise<ClinicData> {
   clinicData ??= loadClinicData();
+
   return clinicData;
 }
 
@@ -51,17 +52,19 @@ export async function testApp(
     callStore?: CallStore;
     tools?: ToolRegistry;
     now?: Date;
+    config?: Partial<Config>;
   } = {},
 ) {
   const calendar = options.calendar ?? new InMemoryCalendar();
   const now = options.now ?? TEST_NOW;
   const callStore = options.callStore ?? new InMemoryCallStore(() => now);
-  const app = await buildApp(testConfig(), {
+  const app = await buildApp(testConfig(options.config), {
     clinic: await testClinic(),
     calendar,
     callStore,
     now: () => now,
     ...(options.tools ? { tools: options.tools } : {}),
   });
+
   return Object.assign(app, { calendar, callStore });
 }

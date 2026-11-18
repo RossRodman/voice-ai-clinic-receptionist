@@ -4,11 +4,13 @@ import { addDays, fromLocal, fromMinutes, toLocal, toMinutes, weekdayOf } from "
 
 function random(seed: number): () => number {
   let a = seed >>> 0;
+
   return () => {
     a = (a + 0x6d2b79f5) >>> 0;
     let t = a;
     t = Math.imul(t ^ (t >>> 15), t | 1);
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
@@ -43,8 +45,13 @@ export function demoCalendar(clinic: Clinic, now: Date, days = 21): InMemoryCale
         }
 
         for (let m = from; m < to; m += slot) {
-          if (lunch !== undefined && m >= lunch && m < lunch + 60) continue;
-          if (rand() > 0.22) continue;
+          if (lunch !== undefined && m >= lunch && m < lunch + 60) {
+            continue;
+          }
+
+          if (rand() > 0.22) {
+            continue;
+          }
 
           const length = slot * (1 + Math.floor(rand() * 3));
           const end = Math.min(m + length, to);

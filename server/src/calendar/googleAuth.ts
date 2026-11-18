@@ -51,6 +51,7 @@ export function signJwt(account: ServiceAccount, key: KeyObject, nowSeconds: num
   );
 
   const signature = sign("RSA-SHA256", Buffer.from(`${header}.${claims}`), key);
+
   return `${header}.${claims}.${base64url(signature)}`;
 }
 

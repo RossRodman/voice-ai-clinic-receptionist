@@ -113,6 +113,48 @@ describe("loadConfig", () => {
     });
   });
 
+  describe("the Vapi assistant", () => {
+    const assistant = {
+      VAPI_SERVER_SECRET: secret,
+      VAPI_API_KEY: "0f6c3a1e-private-key",
+      VAPI_ASSISTANT_ID: "4b8f2c1a-9d3e-4f5a-8b7c-1d2e3f4a5b6c",
+      VAPI_PHONE_NUMBER_ID: "7c1d2e3f-4a5b-4c6d-8e9f-0a1b2c3d4e5f",
+      VAPI_MODEL: "openai/gpt-4.1",
+      PUBLIC_URL: "https://receptionist.example.com/",
+      TRANSFER_NUMBER: "+15550142300",
+    };
+
+    it("reads the settings, without the trailing slash of the URL", () => {
+      const config = loadConfig(assistant);
+
+      expect(config.vapi).toEqual({
+        serverSecret: secret,
+        apiKey: "0f6c3a1e-private-key",
+        assistantId: "4b8f2c1a-9d3e-4f5a-8b7c-1d2e3f4a5b6c",
+        phoneNumberId: "7c1d2e3f-4a5b-4c6d-8e9f-0a1b2c3d4e5f",
+        model: "openai/gpt-4.1",
+      });
+      expect(config.publicUrl).toBe("https://receptionist.example.com");
+      expect(config.transferNumber).toBe("+15550142300");
+    });
+
+    it("explains values that can't work", () => {
+      const load = () =>
+        loadConfig({
+          ...assistant,
+          VAPI_ASSISTANT_ID: "my-assistant",
+          VAPI_MODEL: "gpt-4.1",
+          PUBLIC_URL: "http://localhost:3000",
+          TRANSFER_NUMBER: "(555) 014-2300",
+        });
+
+      expect(load).toThrow(/VAPI_ASSISTANT_ID must be the assistant's id/);
+      expect(load).toThrow(/VAPI_MODEL must be provider\/model/);
+      expect(load).toThrow(/PUBLIC_URL must be the server's public https URL/);
+      expect(load).toThrow(/TRANSFER_NUMBER must be a phone number in E.164 format/);
+    });
+  });
+
   it("requires the Vapi secret", () => {
     expect(() => loadConfig({})).toThrow(/VAPI_SERVER_SECRET is required/);
   });

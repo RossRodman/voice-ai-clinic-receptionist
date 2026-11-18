@@ -42,6 +42,7 @@ export function toToolResult(result: SearchResult): SearchToolResult {
   if (!result.found) {
     return { found: false, instruction: NOT_FOUND_INSTRUCTION };
   }
+
   return {
     found: true,
     answers: result.hits.map(({ entry }) => ({
@@ -55,9 +56,11 @@ export function toToolResult(result: SearchResult): SearchToolResult {
 export function searchKnowledgeBase(knowledgeBase: KnowledgeBase): ToolHandler {
   return async (args, { log }) => {
     const parsed = argsSchema.safeParse(args);
+
     if (!parsed.success) {
       throw new ToolError('Pass the question as "query", a short string.');
     }
+
     const result = knowledgeBase.search(parsed.data.query);
     log.info(
       {
@@ -67,6 +70,7 @@ export function searchKnowledgeBase(knowledgeBase: KnowledgeBase): ToolHandler {
       },
       "knowledge base search",
     );
+
     return toToolResult(result);
   };
 }
