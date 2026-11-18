@@ -33,6 +33,8 @@ export interface BookingRules {
 
 export type CalendarKind = "google" | "demo";
 
+export type CallLogKind = "supabase" | "memory";
+
 export interface Clinic {
   name: string;
   phone: string;
@@ -47,6 +49,7 @@ export interface Clinic {
   languages: string[];
   booking: BookingRules;
   calendar: CalendarKind;
+  callLog: CallLogKind;
 }
 
 export interface KnowledgeEntry {
@@ -142,6 +145,65 @@ export interface Appointment {
   callId?: string;
 }
 
+export type CallStatus = "in-progress" | "ended";
+
+export type CallOutcome = "booked" | "transferred" | "answered" | "hung-up" | "failed";
+
+export interface CallSummary {
+  id: string;
+  status: CallStatus;
+  type: string | null;
+  customerNumber: string | null;
+  startedAt: string;
+  endedAt: string | null;
+  durationSeconds: number | null;
+  endedReason: string | null;
+  outcome: CallOutcome | null;
+  summary: string | null;
+}
+
+export interface TranscriptTurn {
+  role: "assistant" | "caller";
+  text: string;
+  secondsFromStart: number;
+}
+
+export interface ToolCallRecord {
+  id: string;
+  callId: string;
+  name: string;
+  arguments: Record<string, unknown>;
+  result: unknown;
+  error: string | null;
+  durationMs: number | null;
+  secondsFromStart: number | null;
+  createdAt: string;
+}
+
+export interface BookingRecord {
+  id: string;
+  callId: string | null;
+  serviceId: string;
+  service: string;
+  providerId: string;
+  provider: string;
+  startsAt: string;
+  endsAt: string;
+  patientName: string;
+  patientPhone: string;
+  newPatient: boolean | null;
+  notes: string | null;
+  createdAt: string;
+}
+
+export interface CallDetail extends CallSummary {
+  transcript: TranscriptTurn[];
+  recordingUrl: string | null;
+  cost: number | null;
+  toolCalls: ToolCallRecord[];
+  bookings: BookingRecord[];
+}
+
 function queryString(params: object): string {
   const entries = Object.entries(params)
     .filter(([, value]) => value !== undefined && value !== "")
@@ -207,6 +269,12 @@ export const api = {
     request<ScheduleResponse>(`/api/schedule?${queryString(params)}`, { signal }),
   availability: (params: AvailabilityParams, signal?: AbortSignal) =>
     request<{ toolResult: AvailabilityToolResult }>(`/api/availability?${queryString(params)}`, {
+      signal,
+    }),
+  calls: (signal?: AbortSignal) =>
+    request<{ callLog: CallLogKind; calls: CallSummary[] }>("/api/calls", { signal }),
+  call: (id: string, signal?: AbortSignal) =>
+    request<{ callLog: CallLogKind; call: CallDetail }>(`/api/calls/${encodeURIComponent(id)}`, {
       signal,
     }),
   appointments: (signal?: AbortSignal) =>

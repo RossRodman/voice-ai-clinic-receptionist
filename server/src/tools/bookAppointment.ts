@@ -1,9 +1,5 @@
 import { z } from "zod";
-import {
-  BookingError,
-  type BookingResult,
-  type BookingService,
-} from "../booking/service.ts";
+import { BookingError, type BookingResult, type BookingService } from "../booking/service.ts";
 import type { Clinic } from "../clinic/schema.ts";
 import { ToolError, type ToolHandler } from "../vapi/tools.ts";
 import { describeIssues } from "./checkAvailability.ts";
@@ -27,8 +23,7 @@ export function bookAppointmentDefinition(clinic: Clinic) {
           },
           start: {
             type: "string",
-            description:
-              "The chosen slot's start, exactly as check_availability returned it.",
+            description: "The chosen slot's start, exactly as check_availability returned it.",
           },
           providerId: {
             type: "string",
@@ -37,8 +32,7 @@ export function bookAppointmentDefinition(clinic: Clinic) {
           },
           patientName: {
             type: "string",
-            description:
-              "The patient's full name, first and last. For a child, the child's name.",
+            description: "The patient's full name, first and last. For a child, the child's name.",
           },
           patientPhone: {
             type: "string",
@@ -47,8 +41,7 @@ export function bookAppointmentDefinition(clinic: Clinic) {
           },
           newPatient: {
             type: "boolean",
-            description:
-              "Whether this is the patient's first visit to the clinic.",
+            description: "Whether this is the patient's first visit to the clinic.",
           },
           notes: {
             type: "string",
@@ -81,9 +74,7 @@ export function normalizePhone(raw: string): string | null {
 
 export function toBookingResult(result: BookingResult) {
   if (result.status === "unavailable") {
-    const alternatives = result.alternatives.map((
-      { start, spoken, provider, providerId },
-    ) => ({
+    const alternatives = result.alternatives.map(({ start, spoken, provider, providerId }) => ({
       start,
       spoken,
       provider,
@@ -93,9 +84,10 @@ export function toBookingResult(result: BookingResult) {
       booked: false,
       reason: result.reason,
       alternatives,
-      instruction: alternatives.length > 0
-        ? "Nothing was booked. Tell the caller why, offer two or three of the alternatives, and book the one they choose."
-        : "Nothing was booked. Tell the caller why and ask for another day, or offer to transfer them to the front desk.",
+      instruction:
+        alternatives.length > 0
+          ? "Nothing was booked. Tell the caller why, offer two or three of the alternatives, and book the one they choose."
+          : "Nothing was booked. Tell the caller why and ask for another day, or offer to transfer them to the front desk.",
     };
   }
 
@@ -125,15 +117,11 @@ export function bookAppointment(booking: BookingService): ToolHandler {
 
     const rawPhone = given ?? call?.customer?.number;
     if (!rawPhone) {
-      throw new ToolError(
-        "No phone number: ask the caller for one and pass it as patientPhone.",
-      );
+      throw new ToolError("No phone number: ask the caller for one and pass it as patientPhone.");
     }
     const patientPhone = normalizePhone(rawPhone);
     if (!patientPhone) {
-      throw new ToolError(
-        `"${rawPhone}" is not a full phone number. Ask the caller to repeat it.`,
-      );
+      throw new ToolError(`"${rawPhone}" is not a full phone number. Ask the caller to repeat it.`);
     }
 
     try {
@@ -149,9 +137,9 @@ export function bookAppointment(booking: BookingService): ToolHandler {
           status: result.status,
           ...(result.status === "booked"
             ? {
-              appointmentId: result.appointment.id,
-              alreadyBooked: result.alreadyBooked,
-            }
+                appointmentId: result.appointment.id,
+                alreadyBooked: result.alreadyBooked,
+              }
             : { reason: result.reason }),
         },
         "booking",

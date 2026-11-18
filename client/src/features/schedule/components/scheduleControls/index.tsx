@@ -18,9 +18,7 @@ export function ScheduleControls({
   onChange,
 }: ScheduleControlsProps) {
   const service = clinic.services.find((s) => s.id === serviceId);
-  const providers = clinic.providers.filter((p) =>
-    service?.providers.includes(p.id)
-  );
+  const providers = clinic.providers.filter((p) => service?.providers.includes(p.id));
 
   return (
     <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
@@ -31,9 +29,7 @@ export function ScheduleControls({
         value={serviceId}
         onChange={(event) => {
           const next = clinic.services.find((s) => s.id === event.target.value);
-          const keep = next?.providers.includes(providerId)
-            ? providerId
-            : ANYONE;
+          const keep = next?.providers.includes(providerId) ? providerId : ANYONE;
           onChange({ serviceId: event.target.value, providerId: keep });
         }}
         sx={{ minWidth: 280 }}
@@ -54,8 +50,7 @@ export function ScheduleControls({
           inputLabel: { shrink: true },
         }}
         value={providerId}
-        onChange={(event) =>
-          onChange({ serviceId, providerId: event.target.value })}
+        onChange={(event) => onChange({ serviceId, providerId: event.target.value })}
         sx={{ minWidth: 220 }}
       >
         <MenuItem value={ANYONE}>Anyone</MenuItem>

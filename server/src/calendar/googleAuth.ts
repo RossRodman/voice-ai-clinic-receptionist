@@ -14,9 +14,7 @@ export type ServiceAccount = z.infer<typeof serviceAccountSchema>;
 
 export function parseServiceAccount(value: string): ServiceAccount {
   const trimmed = value.trim();
-  const json = trimmed.startsWith("{")
-    ? trimmed
-    : Buffer.from(trimmed, "base64").toString("utf8");
+  const json = trimmed.startsWith("{") ? trimmed : Buffer.from(trimmed, "base64").toString("utf8");
   let raw: unknown;
 
   try {
@@ -29,23 +27,18 @@ export function parseServiceAccount(value: string): ServiceAccount {
 
   if (!parsed.success) {
     throw new Error(
-      `is not a service account key (${
-        parsed.error.issues.map((i) => i.path.join(".")).join(", ")
-      })`,
+      `is not a service account key (${parsed.error.issues
+        .map((i) => i.path.join("."))
+        .join(", ")})`,
     );
   }
 
   return parsed.data;
 }
 
-const base64url = (data: string | Buffer) =>
-  Buffer.from(data).toString("base64url");
+const base64url = (data: string | Buffer) => Buffer.from(data).toString("base64url");
 
-export function signJwt(
-  account: ServiceAccount,
-  key: KeyObject,
-  nowSeconds: number,
-): string {
+export function signJwt(account: ServiceAccount, key: KeyObject, nowSeconds: number): string {
   const header = base64url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
   const claims = base64url(
     JSON.stringify({
@@ -98,11 +91,7 @@ export class ServiceAccountAuth {
   }
 
   private async fetchToken(): Promise<string> {
-    const assertion = signJwt(
-      this.account,
-      this.key,
-      Math.floor(this.now() / 1000),
-    );
+    const assertion = signJwt(this.account, this.key, Math.floor(this.now() / 1000));
     const response = await this.fetchFn(this.account.token_uri, {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded" },

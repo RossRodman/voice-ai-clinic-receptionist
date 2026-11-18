@@ -1,5 +1,7 @@
 import type {
   Appointment,
+  CallDetail,
+  CallSummary,
   AvailabilityToolResult,
   Clinic,
   KnowledgeEntry,
@@ -48,6 +50,7 @@ export const CLINIC: Clinic = {
   languages: ["English", "Spanish"],
   booking: { slotMinutes: 30, minNoticeMinutes: 120, maxDaysAhead: 60 },
   calendar: "demo",
+  callLog: "memory",
 };
 
 const CLEANING: KnowledgeEntry = {
@@ -173,4 +176,83 @@ export const APPOINTMENT: Appointment = {
   newPatient: true,
   notes: "Sensitive teeth",
   callId: "call_1",
+};
+
+export const CALL_SUMMARY: CallSummary = {
+  id: "call_1",
+  status: "ended",
+  type: "inboundPhoneCall",
+  customerNumber: "+15551234567",
+  startedAt: "2026-11-17T16:00:00.000Z",
+  endedAt: "2026-11-17T16:01:43.000Z",
+  durationSeconds: 103,
+  endedReason: "customer-ended-call",
+  outcome: "booked",
+  summary: "Maria Lopez booked a checkup and cleaning for Thursday at 8 AM.",
+};
+
+export const LIVE_CALL: CallSummary = {
+  ...CALL_SUMMARY,
+  id: "call_2",
+  status: "in-progress",
+  customerNumber: "+15559876543",
+  startedAt: "2026-11-17T16:05:00.000Z",
+  endedAt: null,
+  durationSeconds: null,
+  endedReason: null,
+  outcome: null,
+  summary: null,
+};
+
+export const CALL: CallDetail = {
+  ...CALL_SUMMARY,
+  transcript: [
+    { role: "assistant", text: "Thanks for calling Brightside Dental.", secondsFromStart: 0.6 },
+    { role: "caller", text: "I'd like a cleaning, please.", secondsFromStart: 4.2 },
+    { role: "assistant", text: "I have Thursday at 8 AM.", secondsFromStart: 10.3 },
+  ],
+  recordingUrl: "https://storage.vapi.ai/call_1-mono.wav",
+  cost: 0.1342,
+  toolCalls: [
+    {
+      id: "tc_1",
+      callId: "call_1",
+      name: "check_availability",
+      arguments: { serviceId: "checkup-cleaning" },
+      result: { service: "Checkup and cleaning", slots: [] },
+      error: null,
+      durationMs: 3,
+      secondsFromStart: 9.1,
+      createdAt: "2026-11-17T16:00:09.000Z",
+    },
+    {
+      id: "tc_2",
+      callId: "call_1",
+      name: "book_appointment",
+      arguments: { serviceId: "checkup-cleaning", start: "2026-11-19T08:00:00-06:00" },
+      result: null,
+      error: "No phone number: ask the caller for one and pass it as patientPhone.",
+      durationMs: 1,
+      // Not placed by the report: goes by when the server got it (0:20).
+      secondsFromStart: null,
+      createdAt: "2026-11-17T16:00:20.000Z",
+    },
+  ],
+  bookings: [
+    {
+      id: "evt_1",
+      callId: "call_1",
+      serviceId: "checkup-cleaning",
+      service: "Checkup and cleaning",
+      providerId: "hannah-lee",
+      provider: "Hannah Lee",
+      startsAt: "2026-11-19T14:00:00.000Z",
+      endsAt: "2026-11-19T15:00:00.000Z",
+      patientName: "Maria Lopez",
+      patientPhone: "+15551234567",
+      newPatient: true,
+      notes: null,
+      createdAt: "2026-11-17T16:00:23.000Z",
+    },
+  ],
 };

@@ -55,18 +55,12 @@ export class GoogleCalendar implements CalendarClient {
   constructor(options: GoogleCalendarOptions) {
     this.options = options;
     this.fetchFn = options.fetchFn ?? fetch;
-    const ids = options.providerIds.map((id) =>
-      id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-    );
-    this.tagPattern = ids.length
-      ? new RegExp(`#(${ids.join("|")})\\b`)
-      : undefined;
+    const ids = options.providerIds.map((id) => id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+    this.tagPattern = ids.length ? new RegExp(`#(${ids.join("|")})\\b`) : undefined;
   }
 
   private get eventsUrl(): string {
-    return `${API}/calendars/${
-      encodeURIComponent(this.options.calendarId)
-    }/events`;
+    return `${API}/calendars/${encodeURIComponent(this.options.calendarId)}/events`;
   }
 
   private async request(url: string, init: RequestInit = {}): Promise<unknown> {
@@ -85,16 +79,13 @@ export class GoogleCalendar implements CalendarClient {
         signal: AbortSignal.timeout(this.options.timeoutMs ?? 5000),
       });
     } catch (err) {
-      throw new CalendarError(
-        `Google Calendar is unreachable: ${(err as Error).message}`,
-      );
+      throw new CalendarError(`Google Calendar is unreachable: ${(err as Error).message}`);
     }
 
     const body: unknown = await response.json().catch(() => null);
 
     if (!response.ok) {
-      const message = z.object({ error: z.object({ message: z.string() }) })
-        .safeParse(body);
+      const message = z.object({ error: z.object({ message: z.string() }) }).safeParse(body);
       throw new CalendarError(
         `Google Calendar ${response.status}: ${
           message.success ? message.data.error.message : response.statusText
@@ -120,9 +111,7 @@ export class GoogleCalendar implements CalendarClient {
         ...(pageToken ? { pageToken } : {}),
       });
 
-      const page = eventList.parse(
-        await this.request(`${this.eventsUrl}?${params}`),
-      );
+      const page = eventList.parse(await this.request(`${this.eventsUrl}?${params}`));
       for (const item of page.items) {
         const event = this.fromGoogle(item);
         if (event) events.push(event);
@@ -160,9 +149,7 @@ export class GoogleCalendar implements CalendarClient {
     const event = this.fromGoogle(created);
 
     if (!event) {
-      throw new CalendarError(
-        "Google Calendar returned an event without times",
-      );
+      throw new CalendarError("Google Calendar returned an event without times");
     }
 
     return event;
@@ -180,9 +167,7 @@ export class GoogleCalendar implements CalendarClient {
 
     const appointment = fromPrivateProperties(item.extendedProperties?.private);
     const summary = item.summary ?? "(busy)";
-    const tagged = this.tagPattern?.exec(
-      `${summary}\n${item.description ?? ""}`,
-    )?.[1];
+    const tagged = this.tagPattern?.exec(`${summary}\n${item.description ?? ""}`)?.[1];
     const providerId = appointment?.providerId ?? tagged;
 
     return {
@@ -203,9 +188,7 @@ export class GoogleCalendar implements CalendarClient {
   }
 }
 
-export function toPrivateProperties(
-  a: AppointmentDetails,
-): Record<string, string> {
+export function toPrivateProperties(a: AppointmentDetails): Record<string, string> {
   return {
     bookedBy: BOOKED_BY,
     serviceId: a.serviceId,
@@ -230,9 +213,7 @@ export function fromPrivateProperties(
     providerId: p.providerId,
     patientName: p.patientName ?? "",
     patientPhone: p.patientPhone ?? "",
-    ...(p.newPatient === undefined
-      ? {}
-      : { newPatient: p.newPatient === "true" }),
+    ...(p.newPatient === undefined ? {} : { newPatient: p.newPatient === "true" }),
     ...(p.notes ? { notes: p.notes } : {}),
     ...(p.callId ? { callId: p.callId } : {}),
   };

@@ -1,9 +1,5 @@
 import { z } from "zod";
-import {
-  type Availability,
-  BookingError,
-  type BookingService,
-} from "../booking/service.ts";
+import { type Availability, BookingError, type BookingService } from "../booking/service.ts";
 import type { Clinic } from "../clinic/schema.ts";
 import { DATE_RE } from "../calendar/time.ts";
 import { ToolError, type ToolHandler } from "../vapi/tools.ts";
@@ -23,11 +19,11 @@ export function checkAvailabilityDefinition(clinic: Clinic) {
           serviceId: {
             type: "string",
             enum: clinic.services.map((s) => s.id),
-            description: `What the visit is for: ${
-              clinic.services.map((s) =>
-                `${s.id} (${s.name}, ${s.durationMinutes} min)`
-              ).join("; ")
-            }. Pain, swelling or a broken tooth is "emergency"; a first visit for an adult is "new-patient-exam".`,
+            description: `What the visit is for: ${clinic.services
+              .map((s) => `${s.id} (${s.name}, ${s.durationMinutes} min)`)
+              .join(
+                "; ",
+              )}. Pain, swelling or a broken tooth is "emergency"; a first visit for an adult is "new-patient-exam".`,
           },
           date: {
             type: "string",
@@ -42,9 +38,9 @@ export function checkAvailabilityDefinition(clinic: Clinic) {
           providerId: {
             type: "string",
             enum: clinic.providers.map((p) => p.id),
-            description: `Only when the caller asks for someone: ${
-              clinic.providers.map((p) => `${p.id} (${p.name})`).join("; ")
-            }.`,
+            description: `Only when the caller asks for someone: ${clinic.providers
+              .map((p) => `${p.id} (${p.name})`)
+              .join("; ")}.`,
           },
         },
         required: ["serviceId"],
@@ -70,11 +66,12 @@ export function toAvailabilityResult(a: Availability) {
     provider,
     providerId,
   }));
-  const instruction = slots.length === 0
-    ? "There are no free times to offer. Apologize, and offer to transfer the caller to the front desk."
-    : a.note
-    ? `Tell the caller: ${a.note} ${OFFER}`
-    : OFFER;
+  const instruction =
+    slots.length === 0
+      ? "There are no free times to offer. Apologize, and offer to transfer the caller to the front desk."
+      : a.note
+        ? `Tell the caller: ${a.note} ${OFFER}`
+        : OFFER;
 
   return {
     today: a.today,
@@ -92,9 +89,7 @@ export function toAvailabilityResult(a: Availability) {
 
 export function describeIssues(error: z.ZodError): string {
   return error.issues
-    .map((
-      i,
-    ) => (i.path.length ? `${i.path.join(".")}: ${i.message}` : i.message))
+    .map((i) => (i.path.length ? `${i.path.join(".")}: ${i.message}` : i.message))
     .join("; ");
 }
 

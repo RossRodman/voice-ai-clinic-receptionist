@@ -11,6 +11,10 @@ const envSchema = z.object({
     .min(16, "must be at least 16 characters (openssl rand -hex 24)"),
   GOOGLE_CALENDAR_ID: z.string().min(1).optional(),
   GOOGLE_SERVICE_ACCOUNT_KEY: z.string().min(1).optional(),
+  SUPABASE_URL: z
+    .url({ protocol: /^https?$/, error: "must be the project URL, https://<project>.supabase.co" })
+    .optional(),
+  SUPABASE_SECRET_KEY: z.string().min(20, "is too short to be a Supabase key").optional(),
 });
 
 export interface Config {
@@ -24,6 +28,10 @@ export interface Config {
   googleCalendar?: {
     calendarId: string;
     serviceAccount: ServiceAccount;
+  };
+  supabase?: {
+    url: string;
+    secretKey: string;
   };
 }
 
@@ -54,6 +62,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     }
   }
 
+  if (values.SUPABASE_URL && !values.SUPABASE_SECRET_KEY) {
+    problems.push("SUPABASE_SECRET_KEY is required with SUPABASE_URL");
+  } else if (values.SUPABASE_SECRET_KEY && !values.SUPABASE_URL) {
+    problems.push("SUPABASE_URL is required with SUPABASE_SECRET_KEY");
+  }
+
   if (!parsed.success || problems.length > 0) {
     throw new ConfigError(`Invalid environment:\n${problems.map((p) => `  - ${p}`).join("\n")}`);
   }
@@ -66,5 +80,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     logLevel: e.LOG_LEVEL,
     vapi: { serverSecret: e.VAPI_SERVER_SECRET },
     ...(googleCalendar ? { googleCalendar } : {}),
+    ...(e.SUPABASE_URL && e.SUPABASE_SECRET_KEY
+      ? { supabase: { url: e.SUPABASE_URL, secretKey: e.SUPABASE_SECRET_KEY } }
+      : {}),
   };
 }

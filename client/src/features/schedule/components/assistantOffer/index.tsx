@@ -27,9 +27,7 @@ interface AssistantOfferProps {
   days: ScheduleDay[];
 }
 
-export function AssistantOffer(
-  { serviceId, serviceName, providerId, days }: AssistantOfferProps,
-) {
+export function AssistantOffer({ serviceId, serviceName, providerId, days }: AssistantOfferProps) {
   const [date, setDate] = useState(SOONEST);
   const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>("any");
   // A day from another week: back to the soonest times.
@@ -51,11 +49,7 @@ export function AssistantOffer(
       />
 
       <Card sx={{ mt: 3, p: { xs: 2, sm: 3 } }}>
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={2}
-          sx={{ mb: 3 }}
-        >
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mb: 3 }}>
           <TextField
             select
             size="small"
@@ -79,8 +73,7 @@ export function AssistantOffer(
             exclusive
             size="small"
             value={timeOfDay}
-            onChange={(_, value: TimeOfDay | null) =>
-              value && setTimeOfDay(value)}
+            onChange={(_, value: TimeOfDay | null) => value && setTimeOfDay(value)}
             aria-label="Time of day"
           >
             <ToggleButton value="any">Any time</ToggleButton>
@@ -97,32 +90,18 @@ export function AssistantOffer(
                   {toolResult.note}
                 </Alert>
               )}
-              {toolResult.slots.length > 0
-                ? (
-                  <List
-                    dense
-                    disablePadding
-                    aria-label={`Times offered for ${serviceName}`}
-                  >
-                    {toolResult.slots.map((slot) => (
-                      <ListItem key={slot.start} disableGutters>
-                        <ListItemText
-                          primary={slot.spoken}
-                          secondary={`with ${slot.provider}`}
-                        />
-                      </ListItem>
-                    ))}
-                  </List>
-                )
-                : (
-                  !toolResult.note && (
-                    <Alert severity="warning">No free times.</Alert>
-                  )
-                )}
-              <Typography
-                variant="body2"
-                sx={{ color: "text.secondary", fontStyle: "italic" }}
-              >
+              {toolResult.slots.length > 0 ? (
+                <List dense disablePadding aria-label={`Times offered for ${serviceName}`}>
+                  {toolResult.slots.map((slot) => (
+                    <ListItem key={slot.start} disableGutters>
+                      <ListItemText primary={slot.spoken} secondary={`with ${slot.provider}`} />
+                    </ListItem>
+                  ))}
+                </List>
+              ) : (
+                !toolResult.note && <Alert severity="warning">No free times.</Alert>
+              )}
+              <Typography variant="body2" sx={{ color: "text.secondary", fontStyle: "italic" }}>
                 {toolResult.instruction}
               </Typography>
               <AssistantPayload value={toolResult} />
