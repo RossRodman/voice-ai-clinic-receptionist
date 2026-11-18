@@ -8,4 +8,6 @@ export const queryKeys = {
   schedule: (params: ScheduleParams) => ["schedule", params] as const,
   availability: (params: AvailabilityParams) => ["availability", params] as const,
   appointments: ["appointments"] as const,
+  calls: ["calls"] as const,
+  call: (id: string) => ["calls", id] as const,
 };

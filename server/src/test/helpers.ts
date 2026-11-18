@@ -1,5 +1,7 @@
 import { buildApp } from "../app.ts";
 import { InMemoryCalendar } from "../calendar/memory.ts";
+import { InMemoryCallStore } from "../callLog/memory.ts";
+import type { CallStore } from "../callLog/types.ts";
 import type { CalendarClient } from "../calendar/types.ts";
 import type { Config } from "../config.ts";
 import { loadClinicData, type ClinicData } from "../knowledgeBase/load.ts";
@@ -44,15 +46,22 @@ export function testClinic(): Promise<ClinicData> {
 }
 
 export async function testApp(
-  options: { calendar?: CalendarClient; tools?: ToolRegistry; now?: Date } = {},
+  options: {
+    calendar?: CalendarClient;
+    callStore?: CallStore;
+    tools?: ToolRegistry;
+    now?: Date;
+  } = {},
 ) {
   const calendar = options.calendar ?? new InMemoryCalendar();
   const now = options.now ?? TEST_NOW;
+  const callStore = options.callStore ?? new InMemoryCallStore(() => now);
   const app = await buildApp(testConfig(), {
     clinic: await testClinic(),
     calendar,
+    callStore,
     now: () => now,
     ...(options.tools ? { tools: options.tools } : {}),
   });
-  return Object.assign(app, { calendar });
+  return Object.assign(app, { calendar, callStore });
 }

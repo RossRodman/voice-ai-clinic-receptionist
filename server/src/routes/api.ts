@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import { BookingError, type BookingService } from "../booking/service.ts";
 import { DATE_RE } from "../calendar/time.ts";
+import { CallStoreError, type CallStore } from "../callLog/index.ts";
 import { formatPrice, hoursLines } from "../clinic/format.ts";
 import type { ClinicData } from "../knowledgeBase/load.ts";
 import { toAvailabilityResult } from "../tools/checkAvailability.ts";
@@ -30,16 +31,27 @@ const firstIssue = (error: z.ZodError) => {
   return issue.path.length ? `${issue.path.join(".")} ${issue.message}` : issue.message;
 };
 
+const callsQuery = z.object({
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+});
+
+const callParams = z.object({ id: z.string().min(1).max(200) });
+
 export interface ApiRoutesOptions extends ClinicData {
   booking: BookingService;
+  calls: CallStore;
 }
 
 export const apiRoutes: FastifyPluginAsync<ApiRoutesOptions> = async (
   app,
-  { clinic, knowledgeBase, booking },
+  { clinic, knowledgeBase, booking, calls },
 ) => {
   app.setErrorHandler((err, request, reply) => {
     if (err instanceof BookingError) return reply.code(400).send({ error: err.message });
+    if (err instanceof CallStoreError) {
+      request.log.error({ err }, "call log unavailable");
+      return reply.code(502).send({ error: `The call log is unavailable. ${err.message}` });
+    }
     request.log.error({ err }, "api request failed");
     const status = (err as { statusCode?: number }).statusCode ?? 500;
     return reply.code(status).send({
@@ -68,6 +80,7 @@ export const apiRoutes: FastifyPluginAsync<ApiRoutesOptions> = async (
     languages: clinic.languages,
     booking: clinic.booking,
     calendar: booking.calendar.kind,
+    callLog: calls.kind,
   }));
 
   app.get("/knowledge-base", async () => ({ entries: knowledgeBase.entries }));
@@ -116,4 +129,17 @@ export const apiRoutes: FastifyPluginAsync<ApiRoutesOptions> = async (
     calendar: booking.calendar.kind,
     appointments: await booking.upcoming(),
   }));
+
+  app.get("/calls", async (request, reply) => {
+    const parsed = callsQuery.safeParse(request.query);
+    if (!parsed.success) return reply.code(400).send({ error: firstIssue(parsed.error) });
+    return { callLog: calls.kind, calls: await calls.listCalls(parsed.data.limit) };
+  });
+
+  app.get("/calls/:id", async (request, reply) => {
+    const { id } = callParams.parse(request.params);
+    const call = await calls.getCall(id);
+    if (!call) return reply.code(404).send({ error: "There is no call with this id." });
+    return { callLog: calls.kind, call };
+  });
 };

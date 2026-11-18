@@ -1,7 +1,14 @@
 import { createBrowserRouter, type RouteObject } from "react-router";
 
 import { SiteChrome } from "@/components/layout";
-import { DashboardPage, KnowledgeBasePage, NotFoundPage, SchedulePage } from "@/features";
+import {
+  CallPage,
+  CallsPage,
+  DashboardPage,
+  KnowledgeBasePage,
+  NotFoundPage,
+  SchedulePage,
+} from "@/features";
 
 export const routes: RouteObject[] = [
   {
@@ -10,6 +17,8 @@ export const routes: RouteObject[] = [
       { index: true, element: <DashboardPage /> },
       { path: "knowledge-base", element: <KnowledgeBasePage /> },
       { path: "schedule", element: <SchedulePage /> },
+      { path: "calls", element: <CallsPage /> },
+      { path: "calls/:callId", element: <CallPage /> },
       { path: "*", element: <NotFoundPage /> },
     ],
   },

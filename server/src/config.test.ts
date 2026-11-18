@@ -80,6 +80,39 @@ describe("loadConfig", () => {
     });
   });
 
+  describe("Supabase", () => {
+    const supabase = {
+      SUPABASE_URL: "https://abcd.supabase.co",
+      SUPABASE_SECRET_KEY: "sb_secret_0123456789abcdef",
+    };
+
+    it("is off without settings: the call log in memory", () => {
+      expect(loadConfig({ VAPI_SERVER_SECRET: secret }).supabase).toBeUndefined();
+    });
+
+    it("reads the project URL and the key", () => {
+      expect(loadConfig({ VAPI_SERVER_SECRET: secret, ...supabase }).supabase).toEqual({
+        url: "https://abcd.supabase.co",
+        secretKey: "sb_secret_0123456789abcdef",
+      });
+    });
+
+    it("needs both settings, and a URL", () => {
+      expect(() =>
+        loadConfig({ VAPI_SERVER_SECRET: secret, SUPABASE_URL: supabase.SUPABASE_URL }),
+      ).toThrow(/SUPABASE_SECRET_KEY is required with SUPABASE_URL/);
+      expect(() =>
+        loadConfig({
+          VAPI_SERVER_SECRET: secret,
+          SUPABASE_SECRET_KEY: supabase.SUPABASE_SECRET_KEY,
+        }),
+      ).toThrow(/SUPABASE_URL is required/);
+      expect(() =>
+        loadConfig({ VAPI_SERVER_SECRET: secret, ...supabase, SUPABASE_URL: "abcd.supabase.co" }),
+      ).toThrow(/SUPABASE_URL must be the project URL/);
+    });
+  });
+
   it("requires the Vapi secret", () => {
     expect(() => loadConfig({})).toThrow(/VAPI_SERVER_SECRET is required/);
   });

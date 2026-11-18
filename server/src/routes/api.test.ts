@@ -18,7 +18,11 @@ describe("GET /api/clinic", () => {
     const clinic = res.json();
     expect(clinic.name).toBe("Brightside Dental");
     expect(clinic.hours[0]).toEqual({ days: "Monday to Thursday", hours: "8 AM to 6 PM" });
-    expect(clinic).toMatchObject({ calendar: "demo", booking: { slotMinutes: 30 } });
+    expect(clinic).toMatchObject({
+      calendar: "demo",
+      callLog: "memory",
+      booking: { slotMinutes: 30 },
+    });
     expect(clinic.services).toContainEqual(
       expect.objectContaining({ id: "aligner-consultation", price: "free", durationMinutes: 30 }),
     );

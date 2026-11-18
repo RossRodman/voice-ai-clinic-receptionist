@@ -1,6 +1,7 @@
 import Fastify, { type FastifyServerOptions } from "fastify";
 import { BookingService } from "./booking/service.ts";
 import type { CalendarClient } from "./calendar/types.ts";
+import { CallRecorder, type CallStore } from "./callLog/index.ts";
 import type { Config } from "./config.ts";
 import type { ClinicData } from "./knowledgeBase/load.ts";
 import { apiRoutes } from "./routes/api.ts";
@@ -12,6 +13,7 @@ import type { ToolRegistry } from "./vapi/tools.ts";
 export interface AppDeps {
   clinic: ClinicData;
   calendar: CalendarClient;
+  callStore: CallStore;
   now?: () => Date;
   tools?: ToolRegistry;
 }
@@ -32,6 +34,12 @@ function loggerOptions(config: Config): FastifyServerOptions["logger"] {
   return { level: config.logLevel };
 }
 
+declare module "fastify" {
+  interface FastifyInstance {
+    callLog: CallRecorder;
+  }
+}
+
 export async function buildApp(config: Config, deps: AppDeps) {
   const app = Fastify({
     logger: loggerOptions(config),
@@ -42,13 +50,23 @@ export async function buildApp(config: Config, deps: AppDeps) {
   await app.register(healthRoutes);
 
   const booking = new BookingService(deps.clinic.clinic, deps.calendar, deps.now);
+  const recorder = new CallRecorder(deps.callStore, app.log.child({ module: "callLog" }), deps.now);
+  booking.onBooked((appointment) => recorder.booked(appointment));
+  app.decorate("callLog", recorder);
+  app.addHook("onClose", () => recorder.idle());
 
-  await app.register(apiRoutes, { prefix: "/api", ...deps.clinic, booking });
+  await app.register(apiRoutes, {
+    prefix: "/api",
+    ...deps.clinic,
+    booking,
+    calls: deps.callStore,
+  });
 
   await app.register(vapiRoutes, {
     prefix: "/vapi",
     secret: config.vapi.serverSecret,
     tools: deps.tools ?? createTools({ knowledgeBase: deps.clinic.knowledgeBase, booking }),
+    recorder,
   });
 
   return app;

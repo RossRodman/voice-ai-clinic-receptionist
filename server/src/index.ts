@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { buildApp } from "./app.ts";
 import { createCalendar } from "./calendar/index.ts";
+import { createCallStore } from "./callLog/index.ts";
 import { ConfigError, loadConfig } from "./config.ts";
 import { loadClinicData } from "./knowledgeBase/load.ts";
 
@@ -20,7 +21,8 @@ try {
 
 const clinic = await loadClinicData();
 const calendar = createCalendar(config, clinic.clinic);
-const app = await buildApp(config, { clinic, calendar });
+const callStore = createCallStore(config);
+const app = await buildApp(config, { clinic, calendar, callStore });
 
 if (calendar.kind === "demo") {
   app.log.warn(
@@ -28,6 +30,14 @@ if (calendar.kind === "demo") {
   );
 } else {
   app.log.info({ calendarId: config.googleCalendar?.calendarId }, "booking into Google Calendar");
+}
+
+if (callStore.kind === "memory") {
+  app.log.warn(
+    "Supabase is not configured (SUPABASE_URL, SUPABASE_SECRET_KEY): the call log is kept in memory",
+  );
+} else {
+  app.log.info({ url: config.supabase?.url }, "logging calls to Supabase");
 }
 
 for (const signal of ["SIGINT", "SIGTERM"] as const) {

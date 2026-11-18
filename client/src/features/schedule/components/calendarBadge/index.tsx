@@ -15,8 +15,7 @@ const BADGE = {
     label: "Demo calendar",
     color: "warning",
     icon: <ScienceOutlined />,
-    hint:
-      "Google Calendar is not configured, so the server uses a made-up calendar in memory. Bookings are lost when it restarts.",
+    hint: "Google Calendar is not configured, so the server uses a made-up calendar in memory. Bookings are lost when it restarts.",
   },
 } as const;
 

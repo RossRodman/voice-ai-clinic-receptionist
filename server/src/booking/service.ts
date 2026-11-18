@@ -97,8 +97,7 @@ export interface ScheduleDay {
 const DAYS_OFFERED = 3;
 const CHUNK_DAYS = 14;
 
-const LOCAL_START =
-  /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})(?::00(?:\.0+)?)?(Z|[+-]\d{2}:\d{2})?$/;
+const LOCAL_START = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})(?::00(?:\.0+)?)?(Z|[+-]\d{2}:\d{2})?$/;
 
 class Mutex {
   private tail: Promise<unknown> = Promise.resolve();
@@ -115,15 +114,16 @@ export class BookingService {
   readonly calendar: CalendarClient;
   private readonly now: () => Date;
   private readonly lock = new Mutex();
+  private readonly bookedListeners: ((appointment: Appointment) => void)[] = [];
 
-  constructor(
-    clinic: Clinic,
-    calendar: CalendarClient,
-    now: () => Date = () => new Date(),
-  ) {
+  constructor(clinic: Clinic, calendar: CalendarClient, now: () => Date = () => new Date()) {
     this.clinic = clinic;
     this.calendar = calendar;
     this.now = now;
+  }
+
+  onBooked(listener: (appointment: Appointment) => void) {
+    this.bookedListeners.push(listener);
   }
 
   today(): string {
@@ -134,9 +134,9 @@ export class BookingService {
     const service = this.clinic.services.find((s) => s.id === serviceId);
     if (!service) {
       throw new BookingError(
-        `Unknown service "${serviceId}". Use one of: ${
-          this.clinic.services.map((s) => s.id).join(", ")
-        }.`,
+        `Unknown service "${serviceId}". Use one of: ${this.clinic.services
+          .map((s) => s.id)
+          .join(", ")}.`,
       );
     }
 
@@ -144,14 +144,10 @@ export class BookingService {
   }
 
   providerName(providerId: string): string {
-    return this.clinic.providers.find((p) => p.id === providerId)?.name ??
-      providerId;
+    return this.clinic.providers.find((p) => p.id === providerId)?.name ?? providerId;
   }
 
-  private checkProvider(
-    service: Service,
-    providerId: string | undefined,
-  ): void {
+  private checkProvider(service: Service, providerId: string | undefined): void {
     if (providerId === undefined || service.providers.includes(providerId)) {
       return;
     }
@@ -164,9 +160,9 @@ export class BookingService {
 
     throw new BookingError(
       known
-        ? `${
-          this.providerName(providerId)
-        } doesn't do ${service.name.toLowerCase()}. It is done by ${who}.`
+        ? `${this.providerName(
+            providerId,
+          )} doesn't do ${service.name.toLowerCase()}. It is done by ${who}.`
         : `Unknown provider "${providerId}". ${service.name} is done by ${who}.`,
     );
   }
@@ -188,10 +184,7 @@ export class BookingService {
   }
 
   private eventsBetween(first: string, last: string): Promise<CalendarEvent[]> {
-    return this.calendar.listEvents(
-      this.dayStart(first),
-      this.dayStart(addDays(last, 1)),
-    );
+    return this.calendar.listEvents(this.dayStart(first), this.dayStart(addDays(last, 1)));
   }
 
   private async scanDays(
@@ -207,21 +200,10 @@ export class BookingService {
       const chunkEnd = [addDays(chunk, CHUNK_DAYS - 1), lastDate].sort()[0]!;
       const events = await this.eventsBetween(chunk, chunkEnd);
 
-      for (
-        let date = chunk;
-        date <= chunkEnd && found.length < days;
-        date = addDays(date, 1)
-      ) {
-        const slots = freeSlots(
-          this.clinic,
-          service,
-          date,
-          events,
-          this.now(),
-          {
-            providerId: filter.providerId,
-          },
-        ).filter((s) => matchesTimeOfDay(s, filter.timeOfDay));
+      for (let date = chunk; date <= chunkEnd && found.length < days; date = addDays(date, 1)) {
+        const slots = freeSlots(this.clinic, service, date, events, this.now(), {
+          providerId: filter.providerId,
+        }).filter((s) => matchesTimeOfDay(s, filter.timeOfDay));
 
         if (slots.length > 0) found.push(slots);
       }
@@ -253,25 +235,16 @@ export class BookingService {
     };
 
     const offerDays = (days: Slot[][], perDay: number) =>
-      days.flatMap((day) => pickSlots(day, perDay)).map((s) =>
-        this.offer(s, providerId)
-      );
+      days.flatMap((day) => pickSlots(day, perDay)).map((s) => this.offer(s, providerId));
 
     const filter = { timeOfDay, providerId };
 
     if (date === undefined) {
-      const days = await this.scanDays(
-        service,
-        window.today,
-        DAYS_OFFERED,
-        filter,
-      );
+      const days = await this.scanDays(service, window.today, DAYS_OFFERED, filter);
       return {
         ...base,
         slots: offerDays(days, 2),
-        ...(days.length === 0
-          ? { note: this.nothingFree(service, providerId) }
-          : {}),
+        ...(days.length === 0 ? { note: this.nothingFree(service, providerId) } : {}),
       };
     }
 
@@ -280,9 +253,9 @@ export class BookingService {
     }
     if (date < window.today) {
       throw new BookingError(
-        `${
-          spokenDate(date)
-        } has passed. Today is ${base.today}; ask the caller which day they mean.`,
+        `${spokenDate(
+          date,
+        )} has passed. Today is ${base.today}; ask the caller which day they mean.`,
       );
     }
 
@@ -293,10 +266,9 @@ export class BookingService {
         ...requested,
         requestedDateAvailable: false,
         slots: [],
-        note:
-          `Appointments can be booked up to ${this.clinic.booking.maxDaysAhead} days ahead, until ${
-            spokenDate(window.lastDate)
-          }.`,
+        note: `Appointments can be booked up to ${this.clinic.booking.maxDaysAhead} days ahead, until ${spokenDate(
+          window.lastDate,
+        )}.`,
       };
     }
 
@@ -311,14 +283,9 @@ export class BookingService {
 
     const later = first
       ? [
-        first,
-        ...(await this.scanDays(
-          service,
-          addDays(first[0]!.date, 1),
-          DAYS_OFFERED - 1,
-          filter,
-        )),
-      ]
+          first,
+          ...(await this.scanDays(service, addDays(first[0]!.date, 1), DAYS_OFFERED - 1, filter)),
+        ]
       : [];
 
     return {
@@ -329,11 +296,7 @@ export class BookingService {
     };
   }
 
-  private whyNothingOn(
-    date: string,
-    timeOfDay: TimeOfDay,
-    providerId?: string,
-  ): string {
+  private whyNothingOn(date: string, timeOfDay: TimeOfDay, providerId?: string): string {
     const day = spokenDate(date);
     if (this.clinic.hours[weekdayOf(date)].length === 0) {
       return `The clinic is closed on ${day.split(",")[0]}s.`;
@@ -359,12 +322,7 @@ export class BookingService {
       );
     }
 
-    const [, date, time, offset] = match as unknown as [
-      string,
-      string,
-      string,
-      string?,
-    ];
+    const [, date, time, offset] = match as unknown as [string, string, string, string?];
 
     return offset === undefined
       ? fromLocal(date, time, this.clinic.timezone)
@@ -384,22 +342,18 @@ export class BookingService {
           date,
           providerId: request.providerId,
         })
-      ).slots.filter((s) =>
-        s.start !== toZonedIso(start, this.clinic.timezone)
-      );
+      ).slots.filter((s) => s.start !== toZonedIso(start, this.clinic.timezone));
 
     const unavailable = async (reason: string): Promise<BookingResult> => ({
       status: "unavailable",
       reason,
-      alternatives: date >= bookingWindow(this.clinic, this.now()).today
-        ? await alternatives()
-        : [],
+      alternatives:
+        date >= bookingWindow(this.clinic, this.now()).today ? await alternatives() : [],
     });
 
-    const candidate = candidateStarts(this.clinic, service, date, this.now())
-      .find(
-        (c) => c.start.getTime() === start.getTime(),
-      );
+    const candidate = candidateStarts(this.clinic, service, date, this.now()).find(
+      (c) => c.start.getTime() === start.getTime(),
+    );
 
     if (!candidate) {
       return unavailable(this.whyNotBookable(service, start, date, time));
@@ -423,18 +377,13 @@ export class BookingService {
         };
       }
 
-      const providerId =
-        (request.providerId ? [request.providerId] : service.providers).find((
-          p,
-        ) => isProviderFree(events, p, candidate.start, candidate.end));
+      const providerId = (request.providerId ? [request.providerId] : service.providers).find((p) =>
+        isProviderFree(events, p, candidate.start, candidate.end),
+      );
 
       if (!providerId) {
-        const who = request.providerId
-          ? ` with ${this.providerName(request.providerId)}`
-          : "";
-        return unavailable(
-          `${spokenDate(date)} at ${formatTime(time)}${who} was just taken.`,
-        );
+        const who = request.providerId ? ` with ${this.providerName(request.providerId)}` : "";
+        return unavailable(`${spokenDate(date)} at ${formatTime(time)}${who} was just taken.`);
       }
 
       const event = await this.calendar.createEvent({
@@ -447,28 +396,19 @@ export class BookingService {
           providerId,
           patientName: request.patientName,
           patientPhone: request.patientPhone,
-          ...(request.newPatient === undefined
-            ? {}
-            : { newPatient: request.newPatient }),
+          ...(request.newPatient === undefined ? {} : { newPatient: request.newPatient }),
           ...(request.notes ? { notes: request.notes } : {}),
           ...(request.callId ? { callId: request.callId } : {}),
         },
       });
 
-      return {
-        status: "booked",
-        appointment: this.toAppointment(event)!,
-        alreadyBooked: false,
-      };
+      const appointment = this.toAppointment(event)!;
+      for (const listener of this.bookedListeners) listener(appointment);
+      return { status: "booked", appointment, alreadyBooked: false };
     });
   }
 
-  private whyNotBookable(
-    service: Service,
-    start: Date,
-    date: string,
-    time: string,
-  ): string {
+  private whyNotBookable(service: Service, start: Date, date: string, time: string): string {
     const now = this.now();
     const window = bookingWindow(this.clinic, now);
     const when = `${spokenDate(date)} at ${formatTime(time)}`;
@@ -492,24 +432,16 @@ export class BookingService {
     return `${when} is not an appointment time for ${service.name.toLowerCase()} (${service.durationMinutes} minutes) within opening hours.`;
   }
 
-  private describe(
-    service: Service,
-    providerId: string,
-    r: BookingRequest,
-  ): string {
+  private describe(service: Service, providerId: string, r: BookingRequest): string {
     return [
       `Patient: ${r.patientName}`,
       `Phone: ${r.patientPhone}`,
       `Service: ${service.name} (${service.durationMinutes} min)`,
       `With: ${this.providerName(providerId)}`,
-      r.newPatient === undefined
-        ? undefined
-        : `New patient: ${r.newPatient ? "yes" : "no"}`,
+      r.newPatient === undefined ? undefined : `New patient: ${r.newPatient ? "yes" : "no"}`,
       r.notes ? `Notes: ${r.notes}` : undefined,
       "",
-      `Booked by the AI receptionist${
-        r.callId ? ` (Vapi call ${r.callId})` : ""
-      }.`,
+      `Booked by the AI receptionist${r.callId ? ` (Vapi call ${r.callId})` : ""}.`,
     ]
       .filter((line) => line !== undefined)
       .join("\n");
@@ -531,9 +463,7 @@ export class BookingService {
       start: toZonedIso(event.start, this.clinic.timezone),
       end: toZonedIso(event.end, this.clinic.timezone),
       spoken: `${spokenDate(date)} at ${formatTime(time)}`,
-      durationMinutes: Math.round(
-        (event.end.getTime() - event.start.getTime()) / 60_000,
-      ),
+      durationMinutes: Math.round((event.end.getTime() - event.start.getTime()) / 60_000),
       patientName: a.patientName,
       patientPhone: a.patientPhone,
       ...(a.newPatient === undefined ? {} : { newPatient: a.newPatient }),
@@ -544,19 +474,11 @@ export class BookingService {
 
   async upcoming(days = 30): Promise<Appointment[]> {
     const now = this.now();
-    const events = await this.calendar.listEvents(
-      now,
-      new Date(now.getTime() + days * 86_400_000),
-    );
+    const events = await this.calendar.listEvents(now, new Date(now.getTime() + days * 86_400_000));
     return events.flatMap((e) => this.toAppointment(e) ?? []);
   }
 
-  async schedule(
-    serviceId: string,
-    from: string,
-    days: number,
-    providerId?: string,
-  ) {
+  async schedule(serviceId: string, from: string, days: number, providerId?: string) {
     const service = this.service(serviceId);
     this.checkProvider(service, providerId);
 
