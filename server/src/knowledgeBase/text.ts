@@ -1,4 +1,3 @@
-
 const STOP_WORDS = new Set(
   `a about after again all also am an and any are as at be been before being both but by can
   could did do does doing done during each else for from get got had has have having he her here
@@ -8,10 +7,9 @@ const STOP_WORDS = new Set(
   under until up us very want was we were what when which while who whom whose why will with
   would yes yet you your yours hi hello thanks thank okay ok know s t ll ve re d m
   bad good great see kind sort thing things something anything maybe actually basically
-  right well sure oh um uh gonna wanna go going come today tomorrow tonight one two three`
-    .split(
-      /\s+/,
-    ),
+  right well sure oh um uh gonna wanna go going come today tomorrow tonight one two three`.split(
+    /\s+/,
+  ),
 );
 
 const SYNONYMS: Record<string, string> = {

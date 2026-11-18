@@ -25,6 +25,14 @@ export interface Service {
   providers: string[];
 }
 
+export interface BookingRules {
+  slotMinutes: number;
+  minNoticeMinutes: number;
+  maxDaysAhead: number;
+}
+
+export type CalendarKind = "google" | "demo";
+
 export interface Clinic {
   name: string;
   phone: string;
@@ -37,6 +45,8 @@ export interface Clinic {
   services: Service[];
   insurance: { inNetwork: string[]; notAccepted: string[]; notes: string };
   languages: string[];
+  booking: BookingRules;
+  calendar: CalendarKind;
 }
 
 export interface KnowledgeEntry {
@@ -59,6 +69,84 @@ export interface SearchResponse {
   coverage: number;
   hits: (KnowledgeEntry & { score: number })[];
   toolResult: ToolResult;
+}
+
+export type TimeOfDay = "morning" | "afternoon" | "any";
+
+export interface OfferedSlot {
+  start: string;
+  spoken: string;
+  provider: string;
+  providerId: string;
+}
+
+export interface AvailabilityToolResult {
+  today: string;
+  service: string;
+  durationMinutes: number;
+  requestedDate?: string;
+  requestedDateAvailable?: boolean;
+  note?: string;
+  slots: OfferedSlot[];
+  instruction: string;
+}
+
+export interface ScheduleSlot {
+  start: string;
+  time: string;
+  label: string;
+  providerIds: string[];
+}
+
+export interface ScheduleDay {
+  date: string;
+  label: string;
+  closed: boolean;
+  slots: ScheduleSlot[];
+}
+
+export interface ScheduleResponse {
+  calendar: CalendarKind;
+  today: string;
+  days: ScheduleDay[];
+}
+
+export interface ScheduleParams {
+  serviceId: string;
+  from?: string;
+  days?: number;
+  providerId?: string;
+}
+
+export interface AvailabilityParams {
+  serviceId: string;
+  date?: string;
+  timeOfDay?: TimeOfDay;
+  providerId?: string;
+}
+
+export interface Appointment {
+  id: string;
+  serviceId: string;
+  service: string;
+  providerId: string;
+  provider: string;
+  start: string;
+  end: string;
+  spoken: string;
+  durationMinutes: number;
+  patientName: string;
+  patientPhone: string;
+  newPatient?: boolean;
+  notes?: string;
+  callId?: string;
+}
+
+function queryString(params: object): string {
+  const entries = Object.entries(params)
+    .filter(([, value]) => value !== undefined && value !== "")
+    .map(([key, value]) => [key, String(value)]);
+  return new URLSearchParams(entries).toString();
 }
 
 export class ApiError extends Error {
@@ -113,6 +201,16 @@ export const api = {
     request<{ entries: KnowledgeEntry[] }>("/api/knowledge-base", { signal }),
   searchKnowledgeBase: (q: string, signal?: AbortSignal) =>
     request<SearchResponse>(`/api/knowledge-base/search?${new URLSearchParams({ q })}`, {
+      signal,
+    }),
+  schedule: (params: ScheduleParams, signal?: AbortSignal) =>
+    request<ScheduleResponse>(`/api/schedule?${queryString(params)}`, { signal }),
+  availability: (params: AvailabilityParams, signal?: AbortSignal) =>
+    request<{ toolResult: AvailabilityToolResult }>(`/api/availability?${queryString(params)}`, {
+      signal,
+    }),
+  appointments: (signal?: AbortSignal) =>
+    request<{ calendar: CalendarKind; appointments: Appointment[] }>("/api/appointments", {
       signal,
     }),
 };

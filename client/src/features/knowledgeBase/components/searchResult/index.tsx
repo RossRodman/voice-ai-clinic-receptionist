@@ -1,9 +1,7 @@
-import CodeRounded from "@mui/icons-material/CodeRounded";
-import { Alert, Box, Button, Chip, Collapse, Stack, Typography } from "@mui/material";
+import { Alert, Box, Chip, Stack, Typography } from "@mui/material";
 import type { UseQueryResult } from "@tanstack/react-query";
-import { useState } from "react";
 
-import { QueryState } from "@/components";
+import { AssistantPayload, QueryState } from "@/components";
 import { Styled } from "@/styled";
 import type { SearchResponse } from "@/types";
 
@@ -14,8 +12,6 @@ interface SearchResultProps {
 }
 
 export function SearchResult({ query }: SearchResultProps) {
-  const [showRaw, setShowRaw] = useState(false);
-
   return (
     <Box sx={{ mt: 3 }} aria-live="polite">
       <QueryState query={query} rows={2}>
@@ -71,37 +67,7 @@ export function SearchResult({ query }: SearchResultProps) {
               </Alert>
             )}
 
-            <Box>
-              <Button
-                size="small"
-                startIcon={<CodeRounded />}
-                onClick={() => setShowRaw((open) => !open)}
-                aria-expanded={showRaw}
-              >
-                {showRaw ? "Hide" : "Show"} what the assistant receives
-              </Button>
-              <Collapse in={showRaw} unmountOnExit>
-                <Box
-                  component="pre"
-                  sx={[
-                    Styled.Mono,
-                    {
-                      mt: 1,
-                      p: 2,
-                      m: 0,
-                      borderRadius: 2,
-                      bgcolor: "action.hover",
-                      fontSize: 12.5,
-                      overflowX: "auto",
-                      whiteSpace: "pre-wrap",
-                      wordBreak: "break-word",
-                    },
-                  ]}
-                >
-                  {JSON.stringify(result.toolResult, null, 2)}
-                </Box>
-              </Collapse>
-            </Box>
+            <AssistantPayload value={result.toolResult} />
           </Stack>
         )}
       </QueryState>

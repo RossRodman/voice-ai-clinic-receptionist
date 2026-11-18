@@ -77,6 +77,59 @@ The [tests](server/src/knowledgeBase/search.test.ts) ask 25 questions the way ca
 
 In **Front Desk**, the **Knowledge base** page shows the clinic, the services and the FAQ, and has a box to ask a question like a caller and see exactly what the assistant would get back. The question is kept in the link: [`/knowledge-base?q=Do you take Delta Dental?`](http://localhost:8080/knowledge-base?q=Do%20you%20take%20Delta%20Dental%3F).
 
+## Booking
+
+`check_availability` and `book_appointment` work on the clinic's Google Calendar, with the rules from `clinic.json`:
+
+```jsonc
+"booking": {
+  "slotMinutes": 30,        // appointments start at 9:00, 9:30, 10:00…
+  "minNoticeMinutes": 120,  // nothing sooner than two hours from now
+  "maxDaysAhead": 60
+}
+```
+
+**Free times.** A time is free when the whole visit (its length comes from the service) fits inside opening hours, on the slot grid, outside the notice period, and at least one dentist who does that service has nothing in the calendar for the whole visit. Everything is computed in the clinic's time zone, so a 9 AM slot stays 9 AM across daylight saving changes.
+
+**What the assistant hears.** Not the whole grid: the earliest time of each day and one a couple of hours later, for the next three days with free times ("Thursday at 8 AM or 10 AM"). When the caller asks for a day, it gets up to four times that day; if the day doesn't work it gets the reason ("The clinic is closed on Sundays", "Thursday is fully booked") and the next free days instead. Each slot carries the `start` and `providerId` that `book_appointment` takes back, so the model never has to build a timestamp itself, and every result has today's date, since models often don't know it.
+
+```jsonc
+// check_availability({ "serviceId": "kids-checkup", "date": "2026-11-19" })
+{
+  "today": "Tuesday, November 17",
+  "service": "Children's checkup and cleaning",
+  "durationMinutes": 45,
+  "requestedDate": "2026-11-19",
+  "requestedDateAvailable": true,
+  "slots": [
+    { "start": "2026-11-19T08:00:00-06:00", "spoken": "Thursday, November 19 at 8 AM", "provider": "Dr. Sofia Ramirez", "providerId": "dr-ramirez" },
+    …
+  ],
+  "instruction": "Offer two or three of these times, saying the day and the time. When the caller picks one, confirm their full name and phone number, then call book_appointment with that slot's start and providerId."
+}
+```
+
+**Booking safely.**
+
+- **Checked again at booking time.** The calendar is read again right before the event is created, inside a lock, so two callers booking the same time at once get one appointment and one "that time was just taken" with alternatives.
+- **The same request twice is one appointment.** Vapi can repeat a tool call; a booking with the same patient phone, service and time returns the existing appointment.
+- **Refusals the assistant can act on.** A time that has passed, is too soon, is outside opening hours or off the grid comes back as `booked: false` with the reason and other times to offer, not an error.
+- **The caller's number by default.** `patientPhone` falls back to the number the call came from.
+
+**The calendar.** One Google Calendar for the clinic. Events the assistant creates are titled `Checkup and cleaning: Maria Lopez`, with the patient's details in the description and in private extended properties (service, dentist, phone, Vapi call id), which is how Front Desk lists them. Staff keep using the calendar as usual: an event they add blocks everyone ("Staff meeting", an all-day holiday) unless it is tagged with a dentist, like `Lunch #dr-carter`. Events marked "Free" don't block anything. The server talks to the Calendar API directly over `fetch`, with service-account auth signed by Node's `crypto`: no Google SDK.
+
+**Without Google Calendar** the server uses a demo calendar in memory, half-booked for the next three weeks with the same made-up appointments on every start, so the whole flow works on a fresh checkout. Bookings in it are lost on restart.
+
+The [tests](server/src/booking/service.test.ts) cover the rules one by one: opening hours and visit length, the notice period, the booking window, closed days, providers and untagged events, two callers at once, repeated requests, daylight saving time and every refusal. The Google client is tested against recorded API responses: paging, all-day and "free" events, `#tags`, the event it creates, auth and error messages.
+
+In **Front Desk**, the **Schedule** page shows every free time for a service and dentist week by week, what `check_availability` would offer a caller (pick a day and a time of day), and the appointments the assistant booked.
+
+### Connecting Google Calendar
+
+1. In [Google Cloud Console](https://console.cloud.google.com/), create a project, enable the **Google Calendar API**, create a **service account** and download a JSON key for it.
+2. In Google Calendar, create a calendar for the clinic (or use an existing one). In its settings, under **Share with specific people**, add the service account's email with **Make changes to events**.
+3. Set `GOOGLE_CALENDAR_ID` (Settings → the calendar → **Integrate calendar** → Calendar ID) and `GOOGLE_SERVICE_ACCOUNT_KEY` (`base64 < key.json | tr -d '\n'`) in `.env`, and restart. The log says `booking into Google Calendar`, and Front Desk shows **Google Calendar** instead of **Demo calendar**.
+
 ## Roadmap
 
 The project is built pull request by pull request:
@@ -85,10 +138,10 @@ The project is built pull request by pull request:
 |---|---|---|
 | 1 | **Project setup**: webhook server with the Vapi secret check and tool dispatcher; Front Desk dashboard shell (layout, light and dark mode, server status); tests, CI, Docker | ✅ |
 | 2 | **Knowledge base**: Brightside Dental's services, prices, hours, insurance and FAQ; `search_knowledge_base`; the Knowledge base page in Front Desk | ✅ |
-| 3 | **Google Calendar**: `check_availability` and `book_appointment`, with tests for the slot and booking logic | |
+| 3 | **Google Calendar**: `check_availability` and `book_appointment`, with tests for the slot and booking logic; the Schedule page in Front Desk | ✅ |
 | 4 | **Call log in Supabase**: schema and migrations; end-of-call reports, tool calls and bookings stored | |
 | 5 | **The Vapi assistant**: system prompt, tools, transfer to a person; a script that creates or updates it through the Vapi API | |
-| 6 | **Calls and appointments in Front Desk**: calls with transcript, recording, outcome and bookings; stats | |
+| 6 | **Calls and appointments in Front Desk**: calls with transcript, recording, outcome and bookings; stats; sign-in for Front Desk and `/api` | |
 | 7 | **A real test call**: recording, transcript and walkthrough in this README | |
 
 ## Tech stack
@@ -141,6 +194,8 @@ curl -X POST localhost:3000/vapi/webhook \
 # {"results":[{"toolCallId":"t1","name":"search_knowledge_base","result":"{\"found\":true,\"answers\":[{\"topic\":\"Opening hours\",\"answer\":\"Brightside Dental is open Monday to Thursday 8 AM to 6 PM; Friday 8 AM to 3 PM; Saturday 9 AM to 1 PM; closed on Sunday. …\"}]}"}]}
 ```
 
+The same for free times, with `"name":"check_availability","arguments":{"serviceId":"checkup-cleaning"}`, or open [`/api/availability?serviceId=checkup-cleaning`](http://localhost:3000/api/availability?serviceId=checkup-cleaning).
+
 ### API
 
 | | |
@@ -150,6 +205,11 @@ curl -X POST localhost:3000/vapi/webhook \
 | `GET /api/clinic` | The clinic, with hours and prices as the assistant says them |
 | `GET /api/knowledge-base` | All entries |
 | `GET /api/knowledge-base/search?q=` | A search with scores, plus the exact tool result the assistant gets |
+| `GET /api/availability?serviceId=&date=&timeOfDay=&providerId=` | The exact `check_availability` result |
+| `GET /api/schedule?serviceId=&from=&days=&providerId=` | Every free slot, day by day |
+| `GET /api/appointments` | Upcoming appointments the assistant booked |
+
+`/api` has no sign-in yet (it comes with the call log in PR 6), and `/api/appointments` returns patients' names and phone numbers. Until then, don't expose it with real patient data: the tunnel only needs `/vapi/webhook`.
 
 Vapi has to reach the server over HTTPS. For local development, expose it with a tunnel (`ngrok http 3000` or `cloudflared tunnel --url http://localhost:3000`) and use `https://<tunnel>/vapi/webhook` as the assistant's Server URL, with the same secret.
 
@@ -158,6 +218,8 @@ Vapi has to reach the server over HTTPS. For local development, expose it with a
 | Variable | Default | |
 |---|---|---|
 | `VAPI_SERVER_SECRET` | (required) | Shared secret Vapi sends in `x-vapi-secret` or as a Bearer token. 16+ characters |
+| `GOOGLE_CALENDAR_ID` | (empty: demo calendar) | The clinic's calendar |
+| `GOOGLE_SERVICE_ACCOUNT_KEY` | (empty) | The service account's JSON key, base64 (or the JSON itself) |
 | `PORT` | `3000` | Port the server listens on |
 | `SERVER_PORT`, `WEB_PORT` | `3000`, `8080` | Ports on the host, with Docker Compose |
 | `LOG_LEVEL` | `info` | `debug` logs every Vapi message |
@@ -187,6 +249,8 @@ server/                 the webhook server
     routes/           GET /health; /api for Front Desk
     clinic/           clinic.json schema; hours and prices as they are said
     knowledgeBase/    entries from both files, text processing, BM25 search
+    calendar/         time zones; Google Calendar client and service-account auth; demo calendar
+    booking/          free slots (pure functions) and booking: re-check, lock, repeated requests
     tools/            the assistant's functions and their definitions for Vapi
     vapi/
       routes.ts       POST /vapi/webhook
@@ -198,6 +262,6 @@ client/                 Front Desk, the web UI
     app/              theme, router, query client
     api/              typed fetch client
     components/layout sidebar, header (server status, theme toggle), footer
-    features/         pages: dashboard, knowledge base, not found
+    features/         pages: dashboard, knowledge base, schedule, not found
   nginx.conf          serves the build, proxies /api and /health to the server
 ```

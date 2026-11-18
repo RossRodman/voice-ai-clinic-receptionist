@@ -66,8 +66,7 @@ export class KnowledgeBase {
       return { entry, termFreq, length: terms.length };
     });
 
-    this.avgLength = this.index.reduce((sum, d) => sum + d.length, 0) /
-      (this.index.length || 1);
+    this.avgLength = this.index.reduce((sum, d) => sum + d.length, 0) / (this.index.length || 1);
   }
 
   get(id: string): KnowledgeEntry | undefined {
@@ -99,13 +98,8 @@ export class KnowledgeBase {
     const best = top?.score ?? 0;
 
     const total = terms.reduce((sum, t) => sum + this.idf(t), 0);
-    const termFreq = top
-      ? this.index.find((d) => d.entry === top.entry)?.termFreq
-      : undefined;
-    const matched = terms.filter((t) => termFreq?.has(t)).reduce(
-      (sum, t) => sum + this.idf(t),
-      0,
-    );
+    const termFreq = top ? this.index.find((d) => d.entry === top.entry)?.termFreq : undefined;
+    const matched = terms.filter((t) => termFreq?.has(t)).reduce((sum, t) => sum + this.idf(t), 0);
     const coverage = total ? Math.round((matched / total) * 100) / 100 : 0;
 
     if (best === 0 || coverage < MIN_COVERAGE) {

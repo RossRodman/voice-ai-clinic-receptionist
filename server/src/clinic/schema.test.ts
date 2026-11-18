@@ -15,6 +15,15 @@ describe("clinicSchema", () => {
     expect(messages(raw)).toEqual([]);
   });
 
+  it("defaults the booking rules", () => {
+    const { booking: _, ...withoutBooking } = raw;
+    expect(clinicSchema.parse(withoutBooking).booking).toEqual({
+      slotMinutes: 30,
+      minNoticeMinutes: 120,
+      maxDaysAhead: 60,
+    });
+  });
+
   it("rejects a service done by an unknown provider", () => {
     const services = structuredClone(raw.services);
     services[0].providers = ["dr-nobody"];

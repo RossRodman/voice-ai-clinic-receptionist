@@ -23,6 +23,12 @@ const provider = z.object({
   bio: z.string().min(1),
 });
 
+const booking = z.object({
+  slotMinutes: z.number().int().min(5).max(240).default(30),
+  minNoticeMinutes: z.number().int().min(0).default(120),
+  maxDaysAhead: z.number().int().min(1).max(365).default(60),
+});
+
 const service = z.object({
   id: z.string().regex(/^[a-z0-9-]+$/, "must be kebab-case"),
   name: z.string().min(1),
@@ -48,6 +54,7 @@ export const clinicSchema = z
         return false;
       }
     }, "is not an IANA time zone"),
+    booking: booking.default({ slotMinutes: 30, minNoticeMinutes: 120, maxDaysAhead: 60 }),
     hours: z.object(
       Object.fromEntries(WEEKDAYS.map((day) => [day, z.array(openingRange)])) as Record<
         Weekday,
@@ -91,3 +98,4 @@ export type Clinic = z.infer<typeof clinicSchema>;
 export type Service = Clinic["services"][number];
 export type Provider = Clinic["providers"][number];
 export type Price = Service["price"];
+export type BookingRules = Clinic["booking"];
