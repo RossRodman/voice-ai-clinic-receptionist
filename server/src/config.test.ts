@@ -35,6 +35,51 @@ describe("loadConfig", () => {
     expect(load).toThrow(/VAPI_SERVER_SECRET must be at least 16 characters/);
   });
 
+  describe("Google Calendar", () => {
+    const key = JSON.stringify({
+      client_email: "receptionist@demo.iam.gserviceaccount.com",
+      private_key: "-----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY-----\n",
+    });
+
+    it("is off without settings: the demo calendar", () => {
+      expect(loadConfig({ VAPI_SERVER_SECRET: secret }).googleCalendar).toBeUndefined();
+    });
+
+    it("reads the calendar id and the key, as JSON or base64", () => {
+      for (const value of [key, Buffer.from(key).toString("base64")]) {
+        const config = loadConfig({
+          VAPI_SERVER_SECRET: secret,
+          GOOGLE_CALENDAR_ID: "clinic@group.calendar.google.com",
+          GOOGLE_SERVICE_ACCOUNT_KEY: value,
+        });
+        expect(config.googleCalendar).toMatchObject({
+          calendarId: "clinic@group.calendar.google.com",
+          serviceAccount: {
+            client_email: "receptionist@demo.iam.gserviceaccount.com",
+            token_uri: "https://oauth2.googleapis.com/token",
+          },
+        });
+      }
+    });
+
+    it("needs both settings", () => {
+      expect(() => loadConfig({ VAPI_SERVER_SECRET: secret, GOOGLE_CALENDAR_ID: "c" })).toThrow(
+        /GOOGLE_SERVICE_ACCOUNT_KEY is required with GOOGLE_CALENDAR_ID/,
+      );
+      expect(() =>
+        loadConfig({ VAPI_SERVER_SECRET: secret, GOOGLE_SERVICE_ACCOUNT_KEY: key }),
+      ).toThrow(/GOOGLE_CALENDAR_ID is required/);
+    });
+
+    it("rejects a key that isn't one, along with other problems", () => {
+      const load = () =>
+        loadConfig({ PORT: "abc", GOOGLE_CALENDAR_ID: "c", GOOGLE_SERVICE_ACCOUNT_KEY: "{oops" });
+      expect(load).toThrow(/GOOGLE_SERVICE_ACCOUNT_KEY is neither the key's JSON/);
+      expect(load).toThrow(/PORT/);
+      expect(load).toThrow(/VAPI_SERVER_SECRET/);
+    });
+  });
+
   it("requires the Vapi secret", () => {
     expect(() => loadConfig({})).toThrow(/VAPI_SERVER_SECRET is required/);
   });

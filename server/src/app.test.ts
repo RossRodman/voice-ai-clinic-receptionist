@@ -1,13 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { buildApp } from "./app.ts";
-import { TEST_SECRET, testClinic, testConfig, toolCallsMessage } from "./test/helpers.ts";
+import { TEST_SECRET, testApp, toolCallsMessage } from "./test/helpers.ts";
 import { ToolError, type ToolHandler, type ToolRegistry } from "./vapi/tools.ts";
 
-type App = Awaited<ReturnType<typeof buildApp>>;
+type App = Awaited<ReturnType<typeof testApp>>;
 let app: App | undefined;
 
 async function start(tools: ToolRegistry = {}) {
-  app = await buildApp(testConfig(), { clinic: await testClinic(), tools });
+  app = await testApp({ tools });
   return app;
 }
 

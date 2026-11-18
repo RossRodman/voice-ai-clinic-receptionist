@@ -1,7 +1,7 @@
 import { createBrowserRouter, type RouteObject } from "react-router";
 
 import { SiteChrome } from "@/components/layout";
-import { DashboardPage, KnowledgeBasePage, NotFoundPage } from "@/features";
+import { DashboardPage, KnowledgeBasePage, NotFoundPage, SchedulePage } from "@/features";
 
 export const routes: RouteObject[] = [
   {
@@ -9,6 +9,7 @@ export const routes: RouteObject[] = [
     children: [
       { index: true, element: <DashboardPage /> },
       { path: "knowledge-base", element: <KnowledgeBasePage /> },
+      { path: "schedule", element: <SchedulePage /> },
       { path: "*", element: <NotFoundPage /> },
     ],
   },

@@ -5,6 +5,11 @@
   "address": "214 Maple Avenue, Suite 3, Springfield, IL 62704",
   "website": "brightside-dental.example",
   "timezone": "America/Chicago",
+  "booking": {
+    "slotMinutes": 30,
+    "minNoticeMinutes": 120,
+    "maxDaysAhead": 60
+  },
   "hours": {
     "mon": [["08:00", "18:00"]],
     "tue": [["08:00", "18:00"]],

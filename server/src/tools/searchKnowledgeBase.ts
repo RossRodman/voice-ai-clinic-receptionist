@@ -33,9 +33,9 @@ export const NOT_FOUND_INSTRUCTION =
 
 export type SearchToolResult =
   | {
-    found: true;
-    answers: { topic: string; answer: string; serviceId?: string }[];
-  }
+      found: true;
+      answers: { topic: string; answer: string; serviceId?: string }[];
+    }
   | { found: false; instruction: string };
 
 export function toToolResult(result: SearchResult): SearchToolResult {

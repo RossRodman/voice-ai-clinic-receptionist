@@ -1,5 +1,11 @@
+import { buildApp } from "../app.ts";
+import { InMemoryCalendar } from "../calendar/memory.ts";
+import type { CalendarClient } from "../calendar/types.ts";
 import type { Config } from "../config.ts";
 import { loadClinicData, type ClinicData } from "../knowledgeBase/load.ts";
+import type { ToolRegistry } from "../vapi/tools.ts";
+
+export const TEST_NOW = new Date("2026-11-17T16:00:00Z");
 
 export const TEST_SECRET = "test-secret-0123456789abcdef";
 
@@ -35,4 +41,18 @@ let clinicData: Promise<ClinicData> | undefined;
 export function testClinic(): Promise<ClinicData> {
   clinicData ??= loadClinicData();
   return clinicData;
+}
+
+export async function testApp(
+  options: { calendar?: CalendarClient; tools?: ToolRegistry; now?: Date } = {},
+) {
+  const calendar = options.calendar ?? new InMemoryCalendar();
+  const now = options.now ?? TEST_NOW;
+  const app = await buildApp(testConfig(), {
+    clinic: await testClinic(),
+    calendar,
+    now: () => now,
+    ...(options.tools ? { tools: options.tools } : {}),
+  });
+  return Object.assign(app, { calendar });
 }

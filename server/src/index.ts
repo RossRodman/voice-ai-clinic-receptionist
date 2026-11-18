@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { buildApp } from "./app.ts";
+import { createCalendar } from "./calendar/index.ts";
 import { ConfigError, loadConfig } from "./config.ts";
 import { loadClinicData } from "./knowledgeBase/load.ts";
 
@@ -17,7 +18,17 @@ try {
   process.exit(1);
 }
 
-const app = await buildApp(config, { clinic: await loadClinicData() });
+const clinic = await loadClinicData();
+const calendar = createCalendar(config, clinic.clinic);
+const app = await buildApp(config, { clinic, calendar });
+
+if (calendar.kind === "demo") {
+  app.log.warn(
+    "Google Calendar is not configured (GOOGLE_CALENDAR_ID, GOOGLE_SERVICE_ACCOUNT_KEY): booking into the in-memory demo calendar",
+  );
+} else {
+  app.log.info({ calendarId: config.googleCalendar?.calendarId }, "booking into Google Calendar");
+}
 
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.once(signal, () => {

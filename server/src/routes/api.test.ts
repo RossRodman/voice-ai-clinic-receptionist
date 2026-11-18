@@ -1,12 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { buildApp } from "../app.ts";
-import { TEST_SECRET, testClinic, testConfig, toolCallsMessage } from "../test/helpers.ts";
+import { TEST_SECRET, testApp, toolCallsMessage } from "../test/helpers.ts";
 import { NOT_FOUND_INSTRUCTION } from "../tools/searchKnowledgeBase.ts";
 
-let app: Awaited<ReturnType<typeof buildApp>>;
+let app: Awaited<ReturnType<typeof testApp>>;
 
 beforeAll(async () => {
-  app = await buildApp(testConfig(), { clinic: await testClinic() });
+  app = await testApp();
 });
 afterAll(() => app.close());
 
@@ -19,9 +18,61 @@ describe("GET /api/clinic", () => {
     const clinic = res.json();
     expect(clinic.name).toBe("Brightside Dental");
     expect(clinic.hours[0]).toEqual({ days: "Monday to Thursday", hours: "8 AM to 6 PM" });
+    expect(clinic).toMatchObject({ calendar: "demo", booking: { slotMinutes: 30 } });
     expect(clinic.services).toContainEqual(
       expect.objectContaining({ id: "aligner-consultation", price: "free", durationMinutes: 30 }),
     );
+  });
+});
+
+describe("GET /api/availability", () => {
+  it("returns what check_availability would give the assistant", async () => {
+    const res = await get("/api/availability?serviceId=crown&date=2026-11-19&timeOfDay=morning");
+    expect(res.statusCode).toBe(200);
+    const { toolResult } = res.json();
+    expect(toolResult).toMatchObject({ service: "Crown", requestedDateAvailable: true });
+    expect(toolResult.slots.map((s: { spoken: string }) => s.spoken)).toEqual([
+      "Thursday, November 19 at 8 AM",
+      "Thursday, November 19 at 9 AM",
+      "Thursday, November 19 at 10 AM",
+      "Thursday, November 19 at 11:30 AM",
+    ]);
+  });
+
+  it("explains bad input", async () => {
+    expect((await get("/api/availability")).json()).toEqual({
+      error: "serviceId Invalid input: expected string, received undefined",
+    });
+    const unknown = await get("/api/availability?serviceId=botox");
+    expect(unknown.statusCode).toBe(400);
+    expect(unknown.json().error).toMatch(/Unknown service "botox"/);
+  });
+});
+
+describe("GET /api/schedule", () => {
+  it("returns a week of free slots from today", async () => {
+    const res = await get("/api/schedule?serviceId=root-canal");
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body).toMatchObject({ calendar: "demo", today: "2026-11-17" });
+    expect(body.days).toHaveLength(7);
+    expect(body.days[0]).toMatchObject({
+      date: "2026-11-17",
+      label: "Tuesday, November 17",
+      closed: false,
+    });
+    expect(body.days[5]).toMatchObject({ date: "2026-11-22", closed: true, slots: [] });
+  });
+
+  it("validates the range", async () => {
+    expect((await get("/api/schedule?serviceId=crown&days=40")).statusCode).toBe(400);
+    expect((await get("/api/schedule?serviceId=crown&from=tomorrow")).statusCode).toBe(400);
+  });
+});
+
+describe("GET /api/appointments", () => {
+  it("is empty until the assistant books something", async () => {
+    expect((await get("/api/appointments")).json()).toEqual({ calendar: "demo", appointments: [] });
   });
 });
 
