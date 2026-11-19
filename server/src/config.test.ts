@@ -14,6 +14,15 @@ describe("loadConfig", () => {
     });
   });
 
+  it("reads the Front Desk password, 8 characters or more", () => {
+    expect(
+      loadConfig({ VAPI_SERVER_SECRET: secret, FRONT_DESK_PASSWORD: "brightside" }),
+    ).toMatchObject({ frontDeskPassword: "brightside" });
+    expect(() => loadConfig({ VAPI_SERVER_SECRET: secret, FRONT_DESK_PASSWORD: "short" })).toThrow(
+      /FRONT_DESK_PASSWORD must be at least 8 characters/,
+    );
+  });
+
   it("reads and coerces values", () => {
     const config = loadConfig({
       NODE_ENV: "production",

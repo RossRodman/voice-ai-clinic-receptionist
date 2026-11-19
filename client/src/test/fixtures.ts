@@ -2,6 +2,7 @@ import type {
   Appointment,
   AssistantOverview,
   CallDetail,
+  CallStats,
   CallSummary,
   AvailabilityToolResult,
   Clinic,
@@ -324,4 +325,31 @@ export const ASSISTANT: AssistantOverview = {
     phoneNumberId: null,
     model: "anthropic/claude-sonnet-5-5",
   },
+};
+
+export const STATS: CallStats = {
+  callLog: "memory",
+  timezone: "America/Chicago",
+  from: "2026-11-11",
+  to: "2026-11-17",
+  days: 7,
+  totals: { calls: 12, booked: 5, transferred: 2, bookingRate: 0.5, averageDurationSeconds: 95 },
+  outcomes: {
+    booked: 5,
+    transferred: 2,
+    answered: 3,
+    "hung-up": 2,
+    failed: 0,
+    "in-progress": 0,
+    unknown: 0,
+  },
+  perDay: [
+    { date: "2026-11-11", calls: 1, booked: 0 },
+    { date: "2026-11-12", calls: 2, booked: 1 },
+    { date: "2026-11-13", calls: 0, booked: 0 },
+    { date: "2026-11-14", calls: 0, booked: 0 },
+    { date: "2026-11-15", calls: 3, booked: 1 },
+    { date: "2026-11-16", calls: 4, booked: 2 },
+    { date: "2026-11-17", calls: 2, booked: 1 },
+  ],
 };

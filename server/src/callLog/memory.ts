@@ -1,7 +1,9 @@
 import type {
   BookingRow,
   CallDetail,
+  CallQuery,
   CallRow,
+  CallStat,
   CallStore,
   CallSummary,
   CallUpdate,
@@ -14,6 +16,32 @@ const MAX_CALLS = 500;
 
 const defined = <T extends object>(value: T) =>
   Object.fromEntries(Object.entries(value).filter(([, v]) => v !== undefined)) as Partial<T>;
+
+function matches(call: CallRow, query: CallQuery, search: string | undefined): boolean {
+  const started = Date.parse(call.startedAt);
+
+  if (query.from && started < Date.parse(query.from)) {
+    return false;
+  }
+
+  if (query.to && started >= Date.parse(query.to)) {
+    return false;
+  }
+
+  if (query.outcome === "in-progress" && call.status !== "in-progress") {
+    return false;
+  }
+
+  if (query.outcome && query.outcome !== "in-progress" && call.outcome !== query.outcome) {
+    return false;
+  }
+
+  if (!search) {
+    return true;
+  }
+
+  return [call.customerNumber, call.summary].some((text) => text?.toLowerCase().includes(search));
+}
 
 export class InMemoryCallStore implements CallStore {
   readonly kind = "memory";
@@ -91,12 +119,29 @@ export class InMemoryCallStore implements CallStore {
     this.bookings.set(booking.id, { ...booking, createdAt });
   }
 
-  async listCalls(limit: number): Promise<CallSummary[]> {
+  async listCalls(query: CallQuery): Promise<CallSummary[]> {
+    const search = query.search?.toLowerCase();
+
     return this.newestFirst()
-      .slice(0, limit)
+      .filter((call) => matches(call, query, search))
+      .slice(0, query.limit)
       .map(({ transcript: _t, recordingUrl: _r, cost: _c, ...summary }) =>
         structuredClone(summary),
       );
+  }
+
+  async listCallStats(from: string): Promise<CallStat[]> {
+    const since = Date.parse(from);
+
+    return this.newestFirst()
+      .filter((call) => Date.parse(call.startedAt) >= since)
+      .reverse()
+      .map(({ startedAt, status, outcome, durationSeconds }) => ({
+        startedAt,
+        status,
+        outcome,
+        durationSeconds,
+      }));
   }
 
   async getCall(id: string): Promise<CallDetail | null> {

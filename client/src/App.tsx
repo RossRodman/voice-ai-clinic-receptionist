@@ -1,5 +1,5 @@
 import { CssBaseline, ThemeProvider } from "@mui/material";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { RouterProvider } from "react-router/dom";
 
@@ -11,10 +11,11 @@ type Router = typeof browserRouter;
 
 interface AppProps {
   router?: Router;
+  queryClient?: QueryClient;
 }
 
-export function App({ router = browserRouter }: AppProps) {
-  const [queryClient] = useState(createQueryClient);
+export function App({ router = browserRouter, queryClient: client }: AppProps) {
+  const [queryClient] = useState(() => client ?? createQueryClient());
 
   return (
     <ThemeProvider theme={theme} defaultMode="system">

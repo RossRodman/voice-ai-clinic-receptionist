@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { SupabaseCallStore } from "./supabase.ts";
+import { searchTerm, SupabaseCallStore } from "./supabase.ts";
 import { CallStoreError } from "./types.ts";
 
 const URL_ = "https://abcd.supabase.co/";
@@ -92,7 +92,7 @@ describe("SupabaseCallStore", () => {
       ]),
     ]);
 
-    expect(await store.listCalls(20)).toEqual([
+    expect(await store.listCalls({ limit: 20 })).toEqual([
       {
         id: "call_1",
         status: "ended",
@@ -111,6 +111,64 @@ describe("SupabaseCallStore", () => {
         "id,status,type,customer_number,started_at,ended_at,duration_seconds,ended_reason,outcome,summary",
       order: "started_at.desc",
       limit: "20",
+    });
+  });
+
+  it("filters calls by outcome, time and text", async () => {
+    const { store, request } = setup([Response.json([]), Response.json([])]);
+    await store.listCalls({
+      limit: 50,
+      outcome: "booked",
+      from: "2026-11-16T06:00:00.000Z",
+      to: "2026-11-17T06:00:00.000Z",
+      search: "root (canal), *now*",
+    });
+    await store.listCalls({ limit: 50, outcome: "in-progress" });
+
+    const params = request().url.searchParams;
+    expect(params.get("outcome")).toBe("eq.booked");
+    expect(params.getAll("started_at")).toEqual([
+      "gte.2026-11-16T06:00:00.000Z",
+      "lt.2026-11-17T06:00:00.000Z",
+    ]);
+    expect(params.get("or")).toBe(
+      '(customer_number.ilike."*root canal now*",summary.ilike."*root canal now*")',
+    );
+    expect(request(1).url.searchParams.get("status")).toBe("eq.in-progress");
+  });
+
+  it("keeps only letters, digits and phone characters in a search", () => {
+    expect(searchTerm("+1 (555) 014-2300")).toBe("+1 555 014-2300");
+    expect(searchTerm('a"b\\c%_*.,:')).toBe("a b c");
+  });
+
+  it("pages through the calls for stats", async () => {
+    const page = (n: number, offset = 0) =>
+      Response.json(
+        Array.from({ length: n }, (_, i) => ({
+          started_at: `2026-11-17T16:00:${String((offset + i) % 60).padStart(2, "0")}+00:00`,
+          status: "ended",
+          outcome: "booked",
+          duration_seconds: 60,
+        })),
+      );
+    const { store, request, fetchFn } = setup([page(1000), page(3, 1000)]);
+    const stats = await store.listCallStats("2026-11-11T06:00:00.000Z");
+
+    expect(stats).toHaveLength(1003);
+    expect(stats[0]).toEqual({
+      startedAt: "2026-11-17T16:00:00+00:00",
+      status: "ended",
+      outcome: "booked",
+      durationSeconds: 60,
+    });
+    expect(fetchFn).toHaveBeenCalledTimes(2);
+    expect(Object.fromEntries(request(1).url.searchParams)).toEqual({
+      select: "started_at,status,outcome,duration_seconds",
+      started_at: "gte.2026-11-11T06:00:00.000Z",
+      order: "started_at.asc,id.asc",
+      limit: "1000",
+      offset: "1000",
     });
   });
 
@@ -177,13 +235,13 @@ describe("SupabaseCallStore", () => {
       new Response("<html>Bad gateway</html>", { status: 502, statusText: "Bad Gateway" }),
     ]);
 
-    const error = await store.listCalls(10).catch((err: unknown) => err);
+    const error = await store.listCalls({ limit: 10 }).catch((err: unknown) => err);
     expect(error).toBeInstanceOf(CallStoreError);
     expect(error).toMatchObject({
       status: 404,
       message: 'Supabase 404: relation "public.calls" does not exist',
     });
-    await expect(store.listCalls(10)).rejects.toThrow("Supabase 502: Bad Gateway");
+    await expect(store.listCalls({ limit: 10 })).rejects.toThrow("Supabase 502: Bad Gateway");
   });
 
   it("reports a network failure", async () => {

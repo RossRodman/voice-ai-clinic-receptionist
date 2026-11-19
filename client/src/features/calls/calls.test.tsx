@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
@@ -41,6 +41,41 @@ describe("Calls page", () => {
     expect(await screen.findByText("No calls yet.")).toBeInTheDocument();
     expect(screen.getByText("npm run demo:call")).toBeInTheDocument();
     expect(screen.getByText("Supabase")).toBeInTheDocument();
+  });
+});
+
+describe("Call filters", () => {
+  it("reads the filters from the URL and sends them to the server", async () => {
+    const requests = mockApi(BASE);
+    renderRoute("/calls?outcome=booked&from=2026-11-11&to=2026-11-17");
+
+    await screen.findByRole("list", { name: "Calls" });
+    expect(requests.map((r) => r.url)).toContain(
+      "/api/calls?outcome=booked&from=2026-11-11&to=2026-11-17",
+    );
+    expect(screen.getByLabelText("From")).toHaveValue("2026-11-11");
+  });
+
+  it("searches as you type, and clears", async () => {
+    const requests = mockApi(BASE);
+    const { router } = renderRoute("/calls");
+
+    await userEvent.type(await screen.findByLabelText("Search"), "maria");
+
+    await waitFor(() => expect(router.state.location.search).toBe("?q=maria"));
+    await waitFor(() => expect(requests.map((r) => r.url)).toContain("/api/calls?q=maria"));
+
+    await userEvent.click(screen.getByRole("button", { name: "Clear" }));
+    expect(router.state.location.search).toBe("");
+    expect(screen.getByLabelText("Search")).toHaveValue("");
+  });
+
+  it("says when nothing matches", async () => {
+    mockApi({ ...BASE, "GET /api/calls": { callLog: "memory", calls: [] } });
+    renderRoute("/calls?outcome=failed");
+
+    expect(await screen.findByText("No calls match these filters.")).toBeInTheDocument();
+    expect(screen.queryByText("No calls yet.")).not.toBeInTheDocument();
   });
 });
 

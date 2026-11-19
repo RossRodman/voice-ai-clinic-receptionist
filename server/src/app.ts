@@ -1,5 +1,6 @@
 import Fastify, { type FastifyServerOptions } from "fastify";
 import { assistantOverview } from "./assistant/index.ts";
+import { FrontDeskAuth, sessionRoutes } from "./auth/index.ts";
 import { BookingService } from "./booking/service.ts";
 import type { CalendarClient } from "./calendar/types.ts";
 import { CallRecorder, type CallStore } from "./callLog/index.ts";
@@ -58,9 +59,14 @@ export async function buildApp(config: Config, deps: AppDeps) {
   app.decorate("callLog", recorder);
   app.addHook("onClose", () => recorder.idle());
 
+  const auth = new FrontDeskAuth(config.frontDeskPassword, config.vapi.serverSecret, deps.now);
+  await app.register(sessionRoutes, { prefix: "/api", auth });
+
   await app.register(apiRoutes, {
     prefix: "/api",
     ...deps.clinic,
+    auth,
+    now: deps.now ?? (() => new Date()),
     booking,
     calls: deps.callStore,
     assistant: assistantOverview(config, deps.clinic.clinic),

@@ -2,7 +2,9 @@ import { z } from "zod";
 import {
   type BookingRow,
   type CallDetail,
+  type CallQuery,
   type CallRow,
+  type CallStat,
   type CallStore,
   CallStoreError,
   type CallSummary,
@@ -61,6 +63,19 @@ type Columns = Record<string, string>;
 const SUMMARY_FIELDS = Object.keys(CALL_COLUMNS).filter(
   (f) => !["transcript", "recordingUrl", "cost"].includes(f),
 ) as (keyof CallSummary)[];
+
+const STAT_FIELDS = ["startedAt", "status", "outcome", "durationSeconds"] as const;
+
+const STATS_PAGE = 1000;
+
+const MAX_STATS_PAGES = 20;
+
+// PostgREST's or=(...) syntax reserves , . : ( ) and quotes, and ilike treats * % _ as wildcards.
+export const searchTerm = (search: string) =>
+  search
+    .replace(/[^\p{L}\p{N} +@'-]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 
 const NUMERIC = new Set(["cost", "secondsFromStart"]);
 
@@ -190,16 +205,60 @@ export class SupabaseCallStore implements CallStore {
     await this.upsert("bookings", toDb(booking, BOOKING_COLUMNS), "merge");
   }
 
-  async listCalls(limit: number): Promise<CallSummary[]> {
+  async listCalls(query: CallQuery): Promise<CallSummary[]> {
     const select = SUMMARY_FIELDS.map((f) => CALL_COLUMNS[f]).join(",");
     const params = new URLSearchParams({
       select,
       order: "started_at.desc",
-      limit: String(limit),
+      limit: String(query.limit),
     });
+
+    if (query.outcome === "in-progress") {
+      params.append("status", "eq.in-progress");
+    } else if (query.outcome) {
+      params.append("outcome", `eq.${query.outcome}`);
+    }
+
+    if (query.from) {
+      params.append("started_at", `gte.${query.from}`);
+    }
+
+    if (query.to) {
+      params.append("started_at", `lt.${query.to}`);
+    }
+
+    const term = query.search ? searchTerm(query.search) : "";
+
+    if (term) {
+      params.append("or", `(customer_number.ilike."*${term}*",summary.ilike."*${term}*")`);
+    }
+
     const body = rows.parse(await this.request(`/calls?${params}`));
 
     return body.map((row) => fromDb<CallSummary>(row, CALL_COLUMNS, SUMMARY_FIELDS));
+  }
+
+  async listCallStats(from: string): Promise<CallStat[]> {
+    const select = STAT_FIELDS.map((f) => CALL_COLUMNS[f]).join(",");
+    const stats: CallStat[] = [];
+
+    for (let page = 0; page < MAX_STATS_PAGES; page++) {
+      const params = new URLSearchParams({
+        select,
+        started_at: `gte.${from}`,
+        order: "started_at.asc,id.asc",
+        limit: String(STATS_PAGE),
+        offset: String(page * STATS_PAGE),
+      });
+      const body = rows.parse(await this.request(`/calls?${params}`));
+      stats.push(...body.map((row) => fromDb<CallStat>(row, CALL_COLUMNS, [...STAT_FIELDS])));
+
+      if (body.length < STATS_PAGE) {
+        break;
+      }
+    }
+
+    return stats;
   }
 
   async getCall(id: string): Promise<CallDetail | null> {

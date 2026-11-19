@@ -4,6 +4,7 @@ import { SupabaseCallStore } from "./supabase.ts";
 import type { CallStore } from "./types.ts";
 
 export { CallRecorder } from "./recorder.ts";
+export * from "./stats.ts";
 export * from "./types.ts";
 
 export function createCallStore(config: Config): CallStore {

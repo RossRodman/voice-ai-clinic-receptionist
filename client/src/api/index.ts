@@ -162,6 +162,43 @@ export interface CallSummary {
   summary: string | null;
 }
 
+export type CallFilterOutcome = CallOutcome | "in-progress";
+
+export interface CallFilters {
+  outcome?: CallFilterOutcome;
+  from?: string;
+  to?: string;
+  q?: string;
+}
+
+export interface DayStats {
+  date: string;
+  calls: number;
+  booked: number;
+}
+
+export interface CallStats {
+  callLog: CallLogKind;
+  timezone: string;
+  from: string;
+  to: string;
+  days: number;
+  totals: {
+    calls: number;
+    booked: number;
+    transferred: number;
+    bookingRate: number | null;
+    averageDurationSeconds: number | null;
+  };
+  outcomes: Record<CallFilterOutcome | "unknown", number>;
+  perDay: DayStats[];
+}
+
+export interface Session {
+  required: boolean;
+  signedIn: boolean;
+}
+
 export interface TranscriptTurn {
   role: "assistant" | "caller";
   text: string;
@@ -317,6 +354,10 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
     );
   }
 
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
   return (await response.json()) as T;
 }
 
@@ -336,8 +377,20 @@ export const api = {
     request<{ toolResult: AvailabilityToolResult }>(`/api/availability?${queryString(params)}`, {
       signal,
     }),
-  calls: (signal?: AbortSignal) =>
-    request<{ callLog: CallLogKind; calls: CallSummary[] }>("/api/calls", { signal }),
+  session: (signal?: AbortSignal) => request<Session>("/api/session", { signal }),
+  signIn: (password: string) =>
+    request<void>("/api/session", { method: "POST", body: JSON.stringify({ password }) }),
+  signOut: () => request<void>("/api/session", { method: "DELETE" }),
+  stats: (days: number, signal?: AbortSignal) =>
+    request<CallStats>(`/api/stats?${queryString({ days })}`, { signal }),
+  calls: (filters: CallFilters = {}, signal?: AbortSignal) => {
+    const query = queryString(filters);
+
+    return request<{ callLog: CallLogKind; calls: CallSummary[] }>(
+      query ? `/api/calls?${query}` : "/api/calls",
+      { signal },
+    );
+  },
   call: (id: string, signal?: AbortSignal) =>
     request<{ callLog: CallLogKind; call: CallDetail }>(`/api/calls/${encodeURIComponent(id)}`, {
       signal,

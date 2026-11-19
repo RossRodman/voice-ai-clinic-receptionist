@@ -3,6 +3,7 @@ import { AppBar, Box, IconButton, Stack, Toolbar } from "@mui/material";
 
 import { useHealth } from "@/hooks/useHealth";
 
+import { SignOutButton } from "./signOutButton";
 import { SourceLink } from "./sourceLink";
 import { StatusPill } from "./statusPill";
 import { ThemeToggle } from "./themeToggle";
@@ -42,6 +43,7 @@ export function Header({ onOpenMenu }: HeaderProps) {
           <StatusPill state={health} />
           <ThemeToggle />
           <SourceLink />
+          <SignOutButton />
         </Stack>
       </Toolbar>
     </AppBar>
