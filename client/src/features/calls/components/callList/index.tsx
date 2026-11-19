@@ -1,5 +1,5 @@
 import ChevronRightRounded from "@mui/icons-material/ChevronRightRounded";
-import { Box, Card, List, ListItemButton, Stack, Typography } from "@mui/material";
+import { Box, Button, Card, List, ListItemButton, Stack, Typography } from "@mui/material";
 import { Link } from "react-router";
 
 import { Styled } from "@/styled";
@@ -11,9 +11,27 @@ import { OutcomeChip } from "../outcomeChip";
 interface CallListProps {
   calls: CallSummary[];
   timeZone?: string;
+  filtered?: boolean;
+  onClearFilters?: () => void;
 }
 
-export function CallList({ calls, timeZone }: CallListProps) {
+export function CallList({ calls, timeZone, filtered, onClearFilters }: CallListProps) {
+  if (calls.length === 0 && filtered) {
+    return (
+      <Card sx={{ p: 3 }}>
+        <Typography sx={{ fontWeight: 600 }}>No calls match these filters.</Typography>
+        <Typography sx={{ color: "text.secondary", mt: 0.5 }}>
+          Try another outcome or a wider date range.
+        </Typography>
+        {onClearFilters && (
+          <Button onClick={onClearFilters} sx={{ mt: 1.5, ml: -1 }}>
+            Clear the filters
+          </Button>
+        )}
+      </Card>
+    );
+  }
+
   if (calls.length === 0) {
     return (
       <Card sx={{ p: 3 }}>

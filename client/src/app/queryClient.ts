@@ -1,9 +1,17 @@
-import { QueryClient } from "@tanstack/react-query";
+import { QueryCache, QueryClient } from "@tanstack/react-query";
 
 import { ApiError } from "@/api";
+import { queryKeys } from "@/constants";
 
 export function createQueryClient(): QueryClient {
-  return new QueryClient({
+  const signedOut = (error: Error) => {
+    if (error instanceof ApiError && error.status === 401) {
+      queryClient.setQueryData(queryKeys.session, { required: true, signedIn: false });
+    }
+  };
+
+  const queryClient: QueryClient = new QueryClient({
+    queryCache: new QueryCache({ onError: signedOut }),
     defaultOptions: {
       queries: {
         staleTime: 5_000,
@@ -13,4 +21,6 @@ export function createQueryClient(): QueryClient {
       },
     },
   });
+
+  return queryClient;
 }

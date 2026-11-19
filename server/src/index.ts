@@ -46,6 +46,12 @@ if (callStore.kind === "memory") {
   app.log.info({ url: config.supabase?.url }, "logging calls to Supabase");
 }
 
+if (config.frontDeskPassword) {
+  app.log.info("Front Desk and /api need the password (FRONT_DESK_PASSWORD)");
+} else {
+  app.log.warn("FRONT_DESK_PASSWORD is not set: Front Desk and /api are open to anyone");
+}
+
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.once(signal, () => {
     app.log.info({ signal }, "shutting down");

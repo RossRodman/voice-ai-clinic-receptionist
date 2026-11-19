@@ -1,9 +1,16 @@
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import type { AssistantOverview } from "../assistant/index.ts";
+import type { FrontDeskAuth } from "../auth/index.ts";
 import { BookingError, type BookingService } from "../booking/service.ts";
-import { DATE_RE } from "../calendar/time.ts";
-import { CallStoreError, type CallStore } from "../callLog/index.ts";
+import { addDays, DATE_RE, fromLocal } from "../calendar/time.ts";
+import {
+  callStats,
+  CallStoreError,
+  statsPeriod,
+  type CallQuery,
+  type CallStore,
+} from "../callLog/index.ts";
 import { formatPrice, hoursLines } from "../clinic/format.ts";
 import type { ClinicData } from "../knowledgeBase/load.ts";
 import { toAvailabilityResult } from "../tools/checkAvailability.ts";
@@ -33,8 +40,22 @@ const firstIssue = (error: z.ZodError) => {
   return issue.path.length ? `${issue.path.join(".")} ${issue.message}` : issue.message;
 };
 
-const callsQuery = z.object({
-  limit: z.coerce.number().int().min(1).max(200).default(50),
+const callsQuery = z
+  .object({
+    limit: z.coerce.number().int().min(1).max(200).default(50),
+    outcome: z
+      .enum(["booked", "transferred", "answered", "hung-up", "failed", "in-progress"])
+      .optional(),
+    from: date.optional(),
+    to: date.optional(),
+    q: z.string().trim().max(100).optional(),
+  })
+  .refine((query) => !query.from || !query.to || query.from <= query.to, {
+    message: "from must be on or before to",
+  });
+
+const statsQuery = z.object({
+  days: z.coerce.number().int().min(1).max(90).default(14),
 });
 
 const callParams = z.object({ id: z.string().min(1).max(200) });
@@ -43,12 +64,20 @@ export interface ApiRoutesOptions extends ClinicData {
   booking: BookingService;
   calls: CallStore;
   assistant: AssistantOverview;
+  auth: FrontDeskAuth;
+  now: () => Date;
 }
 
 export const apiRoutes: FastifyPluginAsync<ApiRoutesOptions> = async (
   app,
-  { clinic, knowledgeBase, booking, calls, assistant },
+  { clinic, knowledgeBase, booking, calls, assistant, auth, now },
 ) => {
+  app.addHook("onRequest", async (request, reply) => {
+    if (!auth.isSignedIn(request.headers.cookie)) {
+      return reply.code(401).send({ error: "Sign in to Front Desk first." });
+    }
+  });
+
   app.setErrorHandler((err, request, reply) => {
     if (err instanceof BookingError) {
       return reply.code(400).send({ error: err.message });
@@ -161,7 +190,29 @@ export const apiRoutes: FastifyPluginAsync<ApiRoutesOptions> = async (
       return reply.code(400).send({ error: firstIssue(parsed.error) });
     }
 
-    return { callLog: calls.kind, calls: await calls.listCalls(parsed.data.limit) };
+    const { limit, outcome, from, to, q } = parsed.data;
+    const query: CallQuery = {
+      limit,
+      ...(outcome ? { outcome } : {}),
+      ...(from ? { from: fromLocal(from, "00:00", clinic.timezone).toISOString() } : {}),
+      ...(to ? { to: fromLocal(addDays(to, 1), "00:00", clinic.timezone).toISOString() } : {}),
+      ...(q ? { search: q } : {}),
+    };
+
+    return { callLog: calls.kind, calls: await calls.listCalls(query) };
+  });
+
+  app.get("/stats", async (request, reply) => {
+    const parsed = statsQuery.safeParse(request.query);
+
+    if (!parsed.success) {
+      return reply.code(400).send({ error: firstIssue(parsed.error) });
+    }
+
+    const period = statsPeriod(parsed.data.days, now(), clinic.timezone);
+    const stats = callStats(await calls.listCallStats(period.since), period, clinic.timezone);
+
+    return { callLog: calls.kind, timezone: clinic.timezone, ...stats };
   });
 
   app.get("/calls/:id", async (request, reply) => {

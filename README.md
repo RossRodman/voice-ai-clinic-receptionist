@@ -152,7 +152,9 @@ Every call is stored in three Supabase tables, defined in [`supabase/migrations`
 
 The [tests](server/src/callLog/callLog.test.ts) play whole calls through the webhook and read them back from `/api`, including a call log that is down; the Supabase client is tested against recorded REST responses, and the report parser against Vapi's current and older report formats.
 
-In **Front Desk**, the **Calls** page lists the latest calls with their outcome (a call on the line shows as **Live**), and each call opens to the conversation with the functions the assistant ran placed where they happened, each with its arguments and what the assistant got back, plus the summary, the booking, the recording and the details.
+In **Front Desk**, the **Dashboard** opens with an overview of the last 7 or 30 days: calls, booking rate, average call length and transfers, calls per day, and how calls ended. Days are counted in the clinic's time zone. The booking rate counts the calls that ended with a booking out of those where the caller spoke (hung-up calls don't count). Each outcome links to the Calls page, filtered.
+
+The **Calls** page lists the latest calls with their outcome (a call on the line shows as **Live**), filtered by outcome, by date and by text in the number or the summary. The filters are kept in the link, like `/calls?outcome=transferred&from=2026-11-01`. Each call opens to the conversation with the functions the assistant ran placed where they happened, each with its arguments and what the assistant got back, plus the summary, the booking, the recording and the details.
 
 ### Connecting Supabase
 
@@ -192,7 +194,7 @@ The project is built pull request by pull request:
 | 3 | **Google Calendar**: `check_availability` and `book_appointment`, with tests for the slot and booking logic; the Schedule page in Front Desk | ✅ |
 | 4 | **Call log in Supabase**: schema and migrations; calls, tool calls and bookings stored as they happen, completed by the end-of-call report; `npm run demo:call`; the Calls page in Front Desk | ✅ |
 | 5 | **The Vapi assistant**: system prompt and functions built from `clinic.json`, transfer to the front desk, `npm run assistant:sync` through the Vapi API; the Assistant page in Front Desk | ✅ |
-| 6 | **Front Desk overview and sign-in**: stats (calls per day, outcomes, booking rate), filters for the call log; sign-in for Front Desk and `/api` | |
+| 6 | **Front Desk overview and sign-in**: stats (calls per day, outcomes, booking rate), filters for the call log; sign-in for Front Desk and `/api` | ✅ |
 | 7 | **A real test call**: recording, transcript and walkthrough in this README | |
 
 ## Tech stack
@@ -262,12 +264,18 @@ Whole calls, as Vapi sends them: `cd server && npm run demo:call`, then open **C
 | `GET /api/availability?serviceId=&date=&timeOfDay=&providerId=` | The exact `check_availability` result |
 | `GET /api/schedule?serviceId=&from=&days=&providerId=` | Every free slot, day by day |
 | `GET /api/appointments` | Upcoming appointments the assistant booked |
-| `GET /api/calls?limit=` | The latest calls (50 by default) |
+| `GET /api/session`, `POST /api/session`, `DELETE /api/session` | Whether sign-in is needed and done; sign in with `{"password"}`; sign out |
+| `GET /api/stats?days=` | Calls per day, outcomes and booking rate for the last 1 to 90 days (14 by default) |
+| `GET /api/calls?limit=&outcome=&from=&to=&q=` | The latest calls (50 by default), filtered by outcome (or `in-progress`), days in the clinic's time zone, and text |
 | `GET /api/calls/:id` | One call with its transcript, tool calls and bookings |
 
-`/api` has no sign-in yet (it comes in PR 6), and `/api/appointments` and `/api/calls` return patients' names, phone numbers and transcripts. Until then, don't expose it with real patient data: the tunnel only needs `/vapi/webhook`.
-
 Vapi has to reach the server over HTTPS. For local development, expose it with a tunnel (`ngrok http 3000` or `cloudflared tunnel --url http://localhost:3000`), set `PUBLIC_URL` and run `npm run assistant:sync`: see [Connecting Vapi](#connecting-vapi).
+
+### Sign-in
+
+`/api/appointments` and `/api/calls` return patients' names, phone numbers and transcripts, so set `FRONT_DESK_PASSWORD` before Front Desk or `/api` can be reached from outside. With it set, every `/api` route except `/api/session` returns 401 until you sign in, and Front Desk opens on a sign-in page. Without it, they are open, and the server says so in its log at startup. `/health` stays public, and `/vapi/webhook` keeps its own secret.
+
+Signing in sets an `HttpOnly`, `SameSite=Strict` cookie (and `Secure` behind https) holding an expiry 7 days out, signed with HMAC-SHA256 using a key derived from the password. There are no sessions to store, and changing the password signs everyone out. Passwords are compared in constant time, and after 5 wrong passwords from one address in 15 minutes the server refuses more attempts for a while. It is one shared password for a small clinic's front desk, not user accounts.
 
 ### Settings
 
@@ -284,6 +292,7 @@ Vapi has to reach the server over HTTPS. For local development, expose it with a
 | `GOOGLE_SERVICE_ACCOUNT_KEY` | (empty) | The service account's JSON key, base64 (or the JSON itself) |
 | `SUPABASE_URL` | (empty: call log in memory) | The project URL, `https://<project>.supabase.co` |
 | `SUPABASE_SECRET_KEY` | (empty) | A secret key (`sb_secret_…`) or the legacy `service_role` key. Server only |
+| `FRONT_DESK_PASSWORD` | (empty: no sign-in) | The password for Front Desk and `/api`, 8+ characters |
 | `PORT` | `3000` | Port the server listens on |
 | `SERVER_PORT`, `WEB_PORT` | `3000`, `8080` | Ports on the host, with Docker Compose |
 | `LOG_LEVEL` | `info` | `debug` logs every Vapi message |
@@ -314,11 +323,12 @@ server/                 the webhook server
     app.ts            builds the Fastify app (used by the tests too)
     config.ts         environment variables, checked with Zod
     routes/           GET /health; /api for Front Desk
+    auth/             Front Desk sign-in: the signed cookie, the password check, the attempt limit
     assistant/        the Vapi assistant: prompt, functions, voice; the Vapi API client and sync
     clinic/           clinic.json schema; hours and prices as they are said
     knowledgeBase/    entries from both files, text processing, BM25 search
     calendar/         time zones; Google Calendar client and service-account auth; demo calendar
-    callLog/          the call log: Supabase and in-memory stores, the end-of-call report, outcomes
+    callLog/          the call log: Supabase and in-memory stores, the end-of-call report, outcomes, stats
     booking/          free slots (pure functions) and booking: re-check, lock, repeated requests
     tools/            the assistant's functions and their definitions for Vapi
     vapi/

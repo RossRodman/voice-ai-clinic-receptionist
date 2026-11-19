@@ -23,6 +23,11 @@ const envSchema = z.object({
     .string()
     .regex(/^\+[1-9]\d{6,14}$/, "must be a phone number in E.164 format, e.g. +15550142300")
     .optional(),
+  FRONT_DESK_PASSWORD: z
+    .string()
+    .min(8, "must be at least 8 characters")
+    .max(200, "must be at most 200 characters")
+    .optional(),
   GOOGLE_CALENDAR_ID: z.string().min(1).optional(),
   GOOGLE_SERVICE_ACCOUNT_KEY: z.string().min(1).optional(),
   SUPABASE_URL: z
@@ -45,6 +50,7 @@ export interface Config {
   };
   publicUrl?: string;
   transferNumber?: string;
+  frontDeskPassword?: string;
   googleCalendar?: {
     calendarId: string;
     serviceAccount: ServiceAccount;
@@ -108,6 +114,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     },
     ...(e.PUBLIC_URL ? { publicUrl: e.PUBLIC_URL.replace(/\/+$/, "") } : {}),
     ...(e.TRANSFER_NUMBER ? { transferNumber: e.TRANSFER_NUMBER } : {}),
+    ...(e.FRONT_DESK_PASSWORD ? { frontDeskPassword: e.FRONT_DESK_PASSWORD } : {}),
     ...(googleCalendar ? { googleCalendar } : {}),
     ...(e.SUPABASE_URL && e.SUPABASE_SECRET_KEY
       ? { supabase: { url: e.SUPABASE_URL, secretKey: e.SUPABASE_SECRET_KEY } }

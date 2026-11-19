@@ -66,13 +66,29 @@ export interface CallDetail extends CallRow {
 
 export type CallStoreKind = "supabase" | "memory";
 
+export type CallFilterOutcome = CallOutcome | "in-progress";
+
+export interface CallQuery {
+  limit: number;
+  outcome?: CallFilterOutcome;
+  /** ISO instant, inclusive. */
+  from?: string;
+  /** ISO instant, exclusive. */
+  to?: string;
+  /** Matches the caller's number or the summary. */
+  search?: string;
+}
+
+export type CallStat = Pick<CallRow, "startedAt" | "status" | "outcome" | "durationSeconds">;
+
 export interface CallStore {
   readonly kind: CallStoreKind;
   openCall(call: CallUpdate): Promise<void>;
   saveCall(call: CallUpdate): Promise<void>;
   saveToolCalls(rows: ToolCallUpdate[]): Promise<void>;
   saveBooking(booking: NewBooking): Promise<void>;
-  listCalls(limit: number): Promise<CallSummary[]>;
+  listCalls(query: CallQuery): Promise<CallSummary[]>;
+  listCallStats(from: string): Promise<CallStat[]>;
   getCall(id: string): Promise<CallDetail | null>;
 }
 
