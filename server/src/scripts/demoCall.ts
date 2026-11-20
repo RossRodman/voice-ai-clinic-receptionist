@@ -1,6 +1,7 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { loadClinicData } from "../knowledgeBase/load.ts";
 
 const envFile = fileURLToPath(new URL("../../../.env", import.meta.url));
 
@@ -248,10 +249,10 @@ async function main() {
     fail(`Unknown scenario ${unknown.join(", ")}. Use: ${Object.keys(SCENARIOS).join(", ")}.`);
   }
 
-  const clinicRes = await fetch(`${server}/api/clinic`).catch((err: Error) =>
+  await fetch(`${server}/health`).catch((err: Error) =>
     fail(`The server isn't reachable at ${server} (${err.message}). Start it with npm run dev.`),
   );
-  const { name } = (await clinicRes.json()) as { name: string };
+  const { name } = (await loadClinicData()).clinic;
 
   for (const scenario of (wanted.length
     ? wanted
