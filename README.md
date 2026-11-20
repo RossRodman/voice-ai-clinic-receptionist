@@ -14,6 +14,36 @@
 
 The demo clinic is **Brightside Dental**, a made-up practice with three dentists, a hygienist and a price list. Its details live in one file, so the same setup works for any clinic.
 
+## See it in action
+
+These screenshots are from Front Desk after `npm run demo:call` sent three calls through the webhook exactly as Vapi sends them. The callers are simulated (no microphone, no phone line), but everything after that is the real server: the assistant's functions ran, the free slots were checked, the appointments were booked and every call was logged.
+
+### 1. A patient calls and books a cleaning
+
+![A booked call in Front Desk: the conversation with the functions the assistant ran, the summary and the appointment](docs/screenshots/call.png)
+
+The caller asks for a cleaning. At 0:17 the assistant runs `check_availability` and offers two free times, the caller picks one, and at 0:41 `book_appointment` creates the event and the assistant confirms it. Each function sits in the conversation where it ran, and **Details** shows exactly what it sent and got back. On the right: the summary, the appointment, and the call's details. The whole call, exported with `npm run call:export`, is in [docs/demo-call/call.md](docs/demo-call/call.md).
+
+### 2. Every call in one list
+
+![The Calls page: every call with its outcome and summary, with search, outcome and date filters](docs/screenshots/calls.png)
+
+Booked, answered with information, or put through to the front desk: each call has its outcome and a one-line summary. The staff can search by number or summary and filter by outcome and dates.
+
+### 3. How the receptionist is doing
+
+![The Dashboard: calls, booking rate, average call length, calls per day and how calls ended](docs/screenshots/dashboard.png)
+
+The Dashboard counts the last 7 or 30 days: calls, booking rate, average call length, transfers, calls per day, and how calls ended. Each outcome opens the call list, filtered.
+
+### 4. Answers come from the clinic, not from the model
+
+![The Knowledge base page answering "Do you take Delta Dental?" with the clinic's insurance entry](docs/screenshots/knowledge-base.png)
+
+Staff can ask a question like a caller and see exactly what the assistant would get back. Hours, prices and insurance all come from one file, `clinic.json`.
+
+To hear it with a real voice, connect Vapi (see [Connecting Vapi](#connecting-vapi)) and use **Talk to Assistant** in the Vapi dashboard. The call shows up in Front Desk the same way.
+
 ## How it works
 
 ```mermaid
@@ -195,7 +225,7 @@ The project is built pull request by pull request:
 | 4 | **Call log in Supabase**: schema and migrations; calls, tool calls and bookings stored as they happen, completed by the end-of-call report; `npm run demo:call`; the Calls page in Front Desk | ✅ |
 | 5 | **The Vapi assistant**: system prompt and functions built from `clinic.json`, transfer to the front desk, `npm run assistant:sync` through the Vapi API; the Assistant page in Front Desk | ✅ |
 | 6 | **Front Desk overview and sign-in**: stats (calls per day, outcomes, booking rate), filters for the call log; sign-in for Front Desk and `/api` | ✅ |
-| 7 | **A real test call**: recording, transcript and walkthrough in this README | |
+| 7 | **Walkthrough**: screenshots of Front Desk after simulated calls, a call exported with `npm run call:export`, and [See it in action](#see-it-in-action) in this README | ✅ |
 
 ## Tech stack
 
@@ -304,6 +334,7 @@ Signing in sets an `HttpOnly`, `SameSite=Strict` cookie (and `Secure` behind htt
 | `npm run dev` | Server with reload and readable logs; the UI with hot reload |
 | `npm test` | Tests |
 | `npm run demo:call` | (server) Made-up calls through the running server's webhook |
+| `npm run call:export -- <id> \| --latest [--recording]` | (server) A call from the call log as Markdown in `docs/test-call/`, with the recording |
 | `npm run assistant:sync` | (server) Create or update the assistant in Vapi |
 | `npm run assistant:print` | (server) Print the assistant as it would be synced |
 | `npm run lint`, `npm run format` | oxlint, Prettier |
@@ -338,6 +369,7 @@ server/                 the webhook server
       tools.ts        runs tool calls: one result per call, errors the model can act on
     scripts/
       demoCall.ts     npm run demo:call: made-up calls through the webhook
+      exportCall.ts   npm run call:export: a call as Markdown, for the docs
       syncAssistant.ts  npm run assistant:sync: create or update the assistant in Vapi
 client/                 Front Desk, the web UI
   src/
